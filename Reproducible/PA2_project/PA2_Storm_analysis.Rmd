@@ -1,0 +1,24 @@
+---
+title: "Analysis of the NOAA Storm Database and Severe Weather events"
+author: "Chris Shaw"
+date: "14 March 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(R.utils)
+```
+
+```{r acquiredata}
+
+rawdata_url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+rawdata_file <- "storm_data.csv.bz2"
+rawdata_csv <- "storm_data.csv"
+
+if(!file.exists(rawdata_file)) {
+        download.file(url = rawdata_url, destfile = rawdata_file)
+        bunzip2(filename = rawdata_file, destname = rawdata_csv)
+}
+if(!exists("storm_data")) storm_data <- read.csv(rawdata_csv)
+```
