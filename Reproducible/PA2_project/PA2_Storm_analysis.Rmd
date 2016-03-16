@@ -8,9 +8,15 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(R.utils)
+library(plyr)
+library(dplyr)
 ```
 
-```{r acquiredata}
+## Acquiring the data
+
+The raw data is provided as an internet url.  The dataset is rather large, so is only downloaded and loaded if it doesn't already exist.  
+
+```{r acquiredata, cache=TRUE}
 
 rawdata_url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 rawdata_file <- "storm_data.csv.bz2"
@@ -20,5 +26,62 @@ if(!file.exists(rawdata_file)) {
         download.file(url = rawdata_url, destfile = rawdata_file)
         bunzip2(filename = rawdata_file, destname = rawdata_csv)
 }
-if(!exists("storm_data")) storm_data <- read.csv(rawdata_csv)
+storm_data <- read.csv(rawdata_csv)
 ```
+
+* Get a subset of the columns which will be useful for answering the questions
+* Convert Date strings to Date objects
+* Add a year variable to record the year of the event
+
+* Create a summarised set of data by year and EVTYPE
+
+
+```{r processanalyticdataset}
+library(plyr)
+events<-storm_data %>% select(EVTYPE, BGN_DATE, END_DATE, FATALITIES, INJURIES, PROPDMG,
+                              PROPDMGEXP, CROPDMG, CROPDMGEXP, STATE)
+events$BGN_DATE <- as.Date(events$BGN_DATE, "%m/%d/%Y %H:%M:%S")
+events$END_DATE <- as.Date(events$END_DATE, "%m/%d/%Y %H:%M:%S")
+events$year <- as.numeric(format(events$BGN_DATE, "%Y"))
+
+# Convert crop damage into consistent units and multiply
+events$CROPDMGEXP<-mapvalues(events$CROPDMGEXP, 
+                             from = c("",  "?", "0", "2", "B", "k", "K", "m", "M"),
+                             to = c(0,0,0,0,1000000, 1, 1, 1000000, 1000000))
+events$cropdmg_k<-events$PROPDMG * as.numeric(as.character(events$PROPDMGEXP))
+
+# Convert property damage into consistent units and multiply
+events$PROPDMGEXP<-mapvalues(events$PROPDMGEXP, 
+                             from = c("M", "m", "K", "B", "", "-", "?", "+", "0", "1", "2",
+                                      "3", "4", "5", "6", "7", "8", "h", "H"), 
+                             to = c(1000, 1000, 1, 1000000, 0,0,0,0,0,0,0,
+                                    0,0,0,0,0,0,0,0))
+events$propdmg_k<-events$PROPDMG * as.numeric(as.character(events$PROPDMGEXP))
+
+
+# event_summary<- events %>% group_by(year, EVTYPE) %>% summarise(count=n(), injuries=sum(INJURIES), fatalities=sum(FATALITIES))
+
+detach("package:plyr", unload=TRUE)
+annual_events <- events %>% group_by(year) %>% 
+                            mutate(total_annual_events = n(),
+                                   total_annual_injuries = sum(INJURIES),
+                                   total_annual_fatalities = sum(FATALITIES),
+                                   total_annual_property_damage = sum(propdmg_k),
+                                   total_annual_crop_damage = sum(cropdmg_k)) %>% 
+                            group_by(year, EVTYPE, total_annual_events,
+                                                   total_annual_injuries,
+                                                   total_annual_fatalities,
+                                                   total_annual_property_damage,
+                                                   total_annual_crop_damage)  %>%
+                            summarise(number_of_events = n(),
+                                   event_injuries = sum(INJURIES),
+                                   event_fatalities = sum(FATALITIES),
+                                   event_fatalities = sum(FATALITIES),
+                                   event_property_damage = sum(propdmg_k),
+                                   event_crop_damage = sum(cropdmg_k)) %>%
+                             mutate(event_injury_percent = event_injuries/total_annual_injuries)
+                                    
+                         
+
+```
+
