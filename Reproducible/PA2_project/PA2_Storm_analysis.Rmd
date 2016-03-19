@@ -94,8 +94,9 @@ key_events<-unique(c(as.character(a$EVTYPE),as.character(b$EVTYPE),as.character(
 
 annual_events$event_category<-ifelse(annual_events$EVTYPE %in% key_events,as.character(annual_events$EVTYPE), "OTHER" )
 
+first_year<-1985
 # event_summary <- annual_events %>% filter(year>1990) %>% group_by(EVTYPE) %>%
-event_summary <- annual_events  %>% filter(year>1980) %>% group_by(EVTYPE) %>%
+event_summary <- annual_events  %>% filter(year>first_year) %>% group_by(EVTYPE) %>%
                  summarise(number_of_events = sum(number_of_events),
                            event_injuries = sum(event_injuries),
                            event_fatalities = sum(event_fatalities),
@@ -118,7 +119,7 @@ ggplot(subset(event_summary, ((m_fatality_percent >0.01 & m_injury_percent >0.02
                           check_overlap = F, size=3) +
                 ylab("Average proportion of annual fatalities") +
                 xlab("Average proportion of annual injuries") +
-                ggtitle("Weather events with the biggest impact on Population Health since 1980")
+                ggtitle(paste0("Weather events with the biggest impact on Population Health since ", first_year))
 
 ggplot(subset(event_summary, (m_crop_percent >0.1 & m_property_percent >0.01)|
                               m_crop_percent >0.1 | m_property_percent >0.05),
@@ -131,7 +132,8 @@ ggplot(subset(event_summary, (m_crop_percent >0.1 & m_property_percent >0.01)|
                           check_overlap = F, size=3) +
                 ylab("Average proportion of property damage") +
                 xlab("Average proportion of crop damage") +
-                ggtitle("Weather events with the biggest Economics impact since 1980")
+                ggtitle(paste0("Weather events with the biggest Economics impact since ", first_year))        
+
 
 
 
