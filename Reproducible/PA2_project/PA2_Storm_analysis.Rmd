@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(R.utils)
 library(plyr)
 library(dplyr)
+library(ggplot2)
+library(scales)
 ```
 
 ## Acquiring the data
@@ -47,8 +49,8 @@ events$year <- as.numeric(format(events$BGN_DATE, "%Y"))
 # Convert crop damage into consistent units and multiply
 events$CROPDMGEXP<-mapvalues(events$CROPDMGEXP, 
                              from = c("",  "?", "0", "2", "B", "k", "K", "m", "M"),
-                             to = c(0,0,0,0,1000000, 1, 1, 1000000, 1000000))
-events$cropdmg_k<-events$PROPDMG * as.numeric(as.character(events$PROPDMGEXP))
+                             to = c(0,0,0,0,1000000, 1, 1, 1000, 1000))
+events$cropdmg_k<-events$CROPDMG * as.numeric(as.character(events$CROPDMGEXP))
 
 # Convert property damage into consistent units and multiply
 events$PROPDMGEXP<-mapvalues(events$PROPDMGEXP, 
@@ -58,8 +60,9 @@ events$PROPDMGEXP<-mapvalues(events$PROPDMGEXP,
                                     0,0,0,0,0,0,0,0))
 events$propdmg_k<-events$PROPDMG * as.numeric(as.character(events$PROPDMGEXP))
 
-
-# event_summary<- events %>% group_by(year, EVTYPE) %>% summarise(count=n(), injuries=sum(INJURIES), fatalities=sum(FATALITIES))
+# Relabel some key events
+events$EVTYPE<-revalue(events$EVTYPE, c("TSTM WIND"="THUNDERSTORM","FLASH FLOOD"="FLOOD", "FLASH FLOOD/FLOOD"="FLOOD", "FLASH FLOODING"="FLOOD", "HIGH WINDS"="HIGH WIND", "RIVER FLOOD"="FLOOD","THUNDERSTORM WIND"="THUNDERSTORM", "THUNDERSTORM WINDS"="THUNDERSTORM", "TORNADOES, TSTM WIND, HAIL"="TORNADO", "EXTREME HEAT"="HEAT","WILD/FOREST FIRE"="WILDFIRE", "DAMAGING FREEZE"="FREEZE", "HEAVY RAIN/SEVERE WEATHER"="HEAVY RAIN", "HURRICANE OPAL"="HURRICANE", "RIP CURRENTS"="RIP CURRENT", "EXTREME COLD/WIND CHILL"="COLD", "HURRICANE/TYPHOON"="HURRICANE", "WILD FIRES"="WILDFIRE", "STORM SURGE/TIDE"="STORM SURGE", "HURRICANE ERIN"="HURRICANE", "FLOOD/FLASH FLOOD"="FLOOD",
+                                        "HEAT WAVE"="HEAT", "River Flooding"="FLOOD", "EXCESSIVE HEAT"="HEAT", "FROST/FREEZE"="FREEZE", "COLD/WIND CHILL"="COLD", "EXTREME COLD"="COLD"))
 
 detach("package:plyr", unload=TRUE)
 annual_events <- events %>% group_by(year) %>% 
@@ -76,12 +79,61 @@ annual_events <- events %>% group_by(year) %>%
                             summarise(number_of_events = n(),
                                    event_injuries = sum(INJURIES),
                                    event_fatalities = sum(FATALITIES),
-                                   event_fatalities = sum(FATALITIES),
                                    event_property_damage = sum(propdmg_k),
                                    event_crop_damage = sum(cropdmg_k)) %>%
-                             mutate(event_injury_percent = event_injuries/total_annual_injuries)
-                                    
-                         
+                             mutate(event_injury_percent = ifelse(total_annual_injuries==0,0,event_injuries/total_annual_injuries),
+                                    event_fatality_percent = ifelse(total_annual_fatalities==0,0,event_fatalities/total_annual_fatalities),
+                                    event_property_damage_percent = ifelse(total_annual_property_damage==0,0,event_property_damage/total_annual_property_damage),
+                                    event_crop_damage_percent = ifelse(total_annual_crop_damage==0,0,event_crop_damage/total_annual_crop_damage))
+
+a<-annual_events[annual_events$event_property_damage_percent>0.05,]
+b<-annual_events[annual_events$event_crop_damage_percent>0.05,]
+c<-annual_events[annual_events$event_fatality_percent>0.05,]
+d<-annual_events[annual_events$event_injury_percent>0.05,]
+key_events<-unique(c(as.character(a$EVTYPE),as.character(b$EVTYPE),as.character(c$EVTYPE),as.character(d$EVTYPE)))
+
+annual_events$event_category<-ifelse(annual_events$EVTYPE %in% key_events,as.character(annual_events$EVTYPE), "OTHER" )
+
+# event_summary <- annual_events %>% filter(year>1990) %>% group_by(EVTYPE) %>%
+event_summary <- annual_events  %>% filter(year>1980) %>% group_by(EVTYPE) %>%
+                 summarise(number_of_events = sum(number_of_events),
+                           event_injuries = sum(event_injuries),
+                           event_fatalities = sum(event_fatalities),
+                           event_property_damage = sum(event_property_damage),
+                           event_crop_damage = sum(event_crop_damage),
+                           m_fatality_percent = mean(event_fatality_percent),
+                           m_injury_percent = mean(event_injury_percent),
+                           m_property_percent = mean(event_property_damage_percent),
+                           m_crop_percent = mean(event_crop_damage_percent))
+
+par(mar=c(2,2,4,1))
+ggplot(subset(event_summary, ((m_fatality_percent >0.01 & m_injury_percent >0.02) |
+                               m_fatality_percent >0.05 | m_injury_percent >0.05)),
+                aes(m_injury_percent, m_fatality_percent), height=800, width=800) + 
+                geom_point() +
+                scale_y_continuous(labels=percent, breaks = c(0.011,0.02,0.03, 0.05,0.08, 0.1,0.15, 0.2, 0.4,0.6)) +
+                scale_x_continuous(labels=percent, breaks = c(0.005,0,01,0.02,0.03, 0.05,0.07, 0.1,0.15, 0.2, 0.4,0.6)) +
+                coord_trans(x="log10", y="log10") +
+                geom_text(aes(label=tolower(EVTYPE)), hjust=0.5, vjust=1.2,
+                          check_overlap = F, size=3) +
+                ylab("Average proportion of annual fatalities") +
+                xlab("Average proportion of annual injuries") +
+                ggtitle("Weather events with the biggest impact on Population Health since 1980")
+
+ggplot(subset(event_summary, (m_crop_percent >0.1 & m_property_percent >0.01)|
+                              m_crop_percent >0.1 | m_property_percent >0.05),
+                aes(m_crop_percent, m_property_percent), height=800, width=800) + 
+                geom_point() +
+                scale_y_continuous(labels=percent, breaks = c(0.001, 0.005,0.01,0.02, 0.05, 0.1, 0.2, 0.4,0.6)) +
+                scale_x_continuous(labels=percent, breaks =  c(0.001,0.005, 0.01,0.02, 0.05, 0.1, 0.2, 0.4,0.6)) +
+                coord_trans(x="log10", y="log10") +
+                geom_text(aes(label=tolower(EVTYPE)), hjust=0.5, vjust=1.2,
+                          check_overlap = F, size=3) +
+                ylab("Average proportion of property damage") +
+                xlab("Average proportion of crop damage") +
+                ggtitle("Weather events with the biggest Economics impact since 1980")
+
+
 
 ```
 
