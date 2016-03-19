@@ -62,7 +62,7 @@ events$propdmg_k<-events$PROPDMG * as.numeric(as.character(events$PROPDMGEXP))
 
 # Relabel some key events
 events$EVTYPE<-revalue(events$EVTYPE, c("TSTM WIND"="THUNDERSTORM","FLASH FLOOD"="FLOOD", "FLASH FLOOD/FLOOD"="FLOOD", "FLASH FLOODING"="FLOOD", "HIGH WINDS"="HIGH WIND", "RIVER FLOOD"="FLOOD","THUNDERSTORM WIND"="THUNDERSTORM", "THUNDERSTORM WINDS"="THUNDERSTORM", "TORNADOES, TSTM WIND, HAIL"="TORNADO", "EXTREME HEAT"="HEAT","WILD/FOREST FIRE"="WILDFIRE", "DAMAGING FREEZE"="FREEZE", "HEAVY RAIN/SEVERE WEATHER"="HEAVY RAIN", "HURRICANE OPAL"="HURRICANE", "RIP CURRENTS"="RIP CURRENT", "EXTREME COLD/WIND CHILL"="COLD", "HURRICANE/TYPHOON"="HURRICANE", "WILD FIRES"="WILDFIRE", "STORM SURGE/TIDE"="STORM SURGE", "HURRICANE ERIN"="HURRICANE", "FLOOD/FLASH FLOOD"="FLOOD",
-                                        "HEAT WAVE"="HEAT", "River Flooding"="FLOOD", "EXCESSIVE HEAT"="HEAT", "FROST/FREEZE"="FREEZE", "COLD/WIND CHILL"="COLD", "EXTREME COLD"="COLD"))
+                                        "HEAT WAVE"="HEAT", "River Flooding"="FLOOD", "EXCESSIVE HEAT"="HEAT", "FROST/FREEZE"="FREEZE", "COLD/WIND CHILL"="COLD", "EXTREME COLD"="COLD", "HEAVY SURF/HIGH SURF"="HIGH SURF"))
 
 detach("package:plyr", unload=TRUE)
 annual_events <- events %>% group_by(year) %>% 
@@ -94,7 +94,12 @@ key_events<-unique(c(as.character(a$EVTYPE),as.character(b$EVTYPE),as.character(
 
 annual_events$event_category<-ifelse(annual_events$EVTYPE %in% key_events,as.character(annual_events$EVTYPE), "OTHER" )
 
-first_year<-1985
+```
+
+
+```{r graphs}
+first_year<-2001
+lowest_percent=0.01
 # event_summary <- annual_events %>% filter(year>1990) %>% group_by(EVTYPE) %>%
 event_summary <- annual_events  %>% filter(year>first_year) %>% group_by(EVTYPE) %>%
                  summarise(number_of_events = sum(number_of_events),
@@ -108,21 +113,21 @@ event_summary <- annual_events  %>% filter(year>first_year) %>% group_by(EVTYPE)
                            m_crop_percent = mean(event_crop_damage_percent))
 
 par(mar=c(2,2,4,1))
-ggplot(subset(event_summary, ((m_fatality_percent >0.01 & m_injury_percent >0.02) |
-                               m_fatality_percent >0.05 | m_injury_percent >0.05)),
+ggplot(subset(event_summary, (m_fatality_percent >lowest_percent | m_injury_percent >lowest_percent)),
                 aes(m_injury_percent, m_fatality_percent), height=800, width=800) + 
                 geom_point() +
-                scale_y_continuous(labels=percent, breaks = c(0.011,0.02,0.03, 0.05,0.08, 0.1,0.15, 0.2, 0.4,0.6)) +
-                scale_x_continuous(labels=percent, breaks = c(0.005,0,01,0.02,0.03, 0.05,0.07, 0.1,0.15, 0.2, 0.4,0.6)) +
+                scale_y_continuous(labels=percent, breaks = c(0.001,0.01,0.02,0.03, 0.05,0.08, 0.1,0.15, 0.2, 0.4,0.6)) +
+                scale_x_continuous(labels=percent, breaks = c(0.005,0.01,0.02,0.03, 0.05, 0.1, 0.2, 0.4,0.6)) +
                 coord_trans(x="log10", y="log10") +
                 geom_text(aes(label=tolower(EVTYPE)), hjust=0.5, vjust=1.2,
-                          check_overlap = F, size=3) +
+                          check_overlap = T, size=3) +
                 ylab("Average proportion of annual fatalities") +
                 xlab("Average proportion of annual injuries") +
+                geom_segment(y=lowest_percent,yend=lowest_percent,x=0.0001,xend=1, colour="blue", linetype="dashed") +
+                geom_segment(y=0.0001,yend=1,x=lowest_percent,xend=lowest_percent, colour="blue", linetype="dashed") +
                 ggtitle(paste0("Weather events with the biggest impact on Population Health since ", first_year))
 
-ggplot(subset(event_summary, (m_crop_percent >0.1 & m_property_percent >0.01)|
-                              m_crop_percent >0.1 | m_property_percent >0.05),
+ggplot(subset(event_summary, m_crop_percent >lowest_percent | m_property_percent >lowest_percent),
                 aes(m_crop_percent, m_property_percent), height=800, width=800) + 
                 geom_point() +
                 scale_y_continuous(labels=percent, breaks = c(0.001, 0.005,0.01,0.02, 0.05, 0.1, 0.2, 0.4,0.6)) +
@@ -132,6 +137,8 @@ ggplot(subset(event_summary, (m_crop_percent >0.1 & m_property_percent >0.01)|
                           check_overlap = F, size=3) +
                 ylab("Average proportion of property damage") +
                 xlab("Average proportion of crop damage") +
+                geom_segment(y=lowest_percent,yend=lowest_percent,x=0.0000001,xend=1, colour="blue", linetype="dashed") +
+                geom_segment(y=0.0000001,yend=1,x=lowest_percent,xend=lowest_percent, colour="blue", linetype="dashed") +
                 ggtitle(paste0("Weather events with the biggest Economics impact since ", first_year))        
 
 
