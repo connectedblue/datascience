@@ -6,6 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+# Load libraries needed for paper
 knitr::opts_chunk$set(echo = TRUE)
 library(R.utils)
 library(plyr)
@@ -14,12 +15,29 @@ library(ggplot2)
 library(scales)
 ```
 
-## Acquiring the data
+## Synopsis
 
-The raw data is provided as an internet url.  The dataset is rather large, so is only downloaded and loaded if it doesn't already exist.  
+
+## Introduction
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+The government have requested this report to help prepare for severe weather events, including prioritisation of resources for different types of events. The following questions are addressed:
+
+1. Across the United States, which types of events are most harmful with respect to population health?
+2. Across the United States, which types of events have the greatest economic consequences?
+
+The analysis is based upon the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+## Data Processing
+
+A number of steps are required to prepare the data before analysis which are described below.  Some decisions have been made during the processing which impact the results, so a justification is provided.
+
+### Acquiring the data
+
+The raw data was provided as an internet url.  The dataset is rather large, so is only downloaded if it doesn't already exist:  
 
 ```{r acquiredata, cache=TRUE}
-
 rawdata_url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 rawdata_file <- "storm_data.csv.bz2"
 rawdata_csv <- "storm_data.csv"
@@ -31,21 +49,25 @@ if(!file.exists(rawdata_file)) {
 storm_data <- read.csv(rawdata_csv)
 ```
 
-* Get a subset of the columns which will be useful for answering the questions
-* Convert Date strings to Date objects
-* Add a year variable to record the year of the event
+The raw data contains `r format(dim(storm_data)[1]), big.mark=",")` weather observations and `r dim(storm_data)[2]` variables for each observation.
 
-* Create a summarised set of data by year and EVTYPE
+The events in the database start in the year 1950 and end in November 2011. In the earlier years of the database there are generally fewer events recorded, most likely due to a lack of good records. More recent years are more complete.
 
+### Cleaning and transforming the data
 
-```{r processanalyticdataset}
+The first task is to create a smaller dataset with only those items relevant to the analysis.  A new variable called **year** is created to assist with group of events by calender year later on.
+
+```{r cleanupdata}
 library(plyr)
-events<-storm_data %>% select(EVTYPE, BGN_DATE, END_DATE, FATALITIES, INJURIES, PROPDMG,
+events<-storm_data %>% select(EVTYPE, BGN_DATE, FATALITIES, INJURIES, PROPDMG,
                               PROPDMGEXP, CROPDMG, CROPDMGEXP, STATE)
 events$BGN_DATE <- as.Date(events$BGN_DATE, "%m/%d/%Y %H:%M:%S")
-events$END_DATE <- as.Date(events$END_DATE, "%m/%d/%Y %H:%M:%S")
 events$year <- as.numeric(format(events$BGN_DATE, "%Y"))
+```
 
+Two transformations have been applied to the data.  The first is combine the **DMG** and **DMGEXP** variables for crop and property damage.  In the raw data, the first contains a number and the second contains the units of measurement in US dollars (k=thousand, m=million and b=billion).  The correct scaling factor is applied to these and multiplied to create a new **dmg_k** variable to give a consistent economic damage value in thousand dollar units.
+
+```{r transformdata}
 # Convert crop damage into consistent units and multiply
 events$CROPDMGEXP<-mapvalues(events$CROPDMGEXP, 
                              from = c("",  "?", "0", "2", "B", "k", "K", "m", "M"),
@@ -59,12 +81,20 @@ events$PROPDMGEXP<-mapvalues(events$PROPDMGEXP,
                              to = c(1000, 1000, 1, 1000000, 0,0,0,0,0,0,0,
                                     0,0,0,0,0,0,0,0))
 events$propdmg_k<-events$PROPDMG * as.numeric(as.character(events$PROPDMGEXP))
+```
 
-# Relabel some key events
+The second transformation is to relabel the names of some events.  During exploratory analysis it became clear that some types of similar events are labelled differently due to spelling and othe
+
+```{r relabelevtype}
 events$EVTYPE<-revalue(events$EVTYPE, c("TSTM WIND"="THUNDERSTORM","FLASH FLOOD"="FLOOD", "FLASH FLOOD/FLOOD"="FLOOD", "FLASH FLOODING"="FLOOD", "HIGH WINDS"="HIGH WIND", "RIVER FLOOD"="FLOOD","THUNDERSTORM WIND"="THUNDERSTORM", "THUNDERSTORM WINDS"="THUNDERSTORM", "TORNADOES, TSTM WIND, HAIL"="TORNADO", "EXTREME HEAT"="HEAT","WILD/FOREST FIRE"="WILDFIRE", "DAMAGING FREEZE"="FREEZE", "HEAVY RAIN/SEVERE WEATHER"="HEAVY RAIN", "HURRICANE OPAL"="HURRICANE", "RIP CURRENTS"="RIP CURRENT", "EXTREME COLD/WIND CHILL"="COLD", "HURRICANE/TYPHOON"="HURRICANE", "WILD FIRES"="WILDFIRE", "STORM SURGE/TIDE"="STORM SURGE", "HURRICANE ERIN"="HURRICANE", "FLOOD/FLASH FLOOD"="FLOOD",
                                         "HEAT WAVE"="HEAT", "River Flooding"="FLOOD", "EXCESSIVE HEAT"="HEAT", "FROST/FREEZE"="FREEZE", "COLD/WIND CHILL"="COLD", "EXTREME COLD"="COLD", "HEAVY SURF/HIGH SURF"="HIGH SURF"))
 
 detach("package:plyr", unload=TRUE)
+```
+
+* Create a summarised set of data by year and EVTYPE
+
+```{r processanalyticdata}
 annual_events <- events %>% group_by(year) %>% 
                             mutate(total_annual_events = n(),
                                    total_annual_injuries = sum(INJURIES),
@@ -96,11 +126,12 @@ annual_events$event_category<-ifelse(annual_events$EVTYPE %in% key_events,as.cha
 
 ```
 
+## Results
 
 ```{r graphs}
 first_year<-2001
 lowest_percent=0.01
-# event_summary <- annual_events %>% filter(year>1990) %>% group_by(EVTYPE) %>%
+
 event_summary <- annual_events  %>% filter(year>first_year) %>% group_by(EVTYPE) %>%
                  summarise(number_of_events = sum(number_of_events),
                            event_injuries = sum(event_injuries),
