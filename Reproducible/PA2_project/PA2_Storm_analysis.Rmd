@@ -13,6 +13,7 @@ library(plyr)
 library(dplyr)
 library(ggplot2)
 library(scales)
+library(knitr)
 ```
 
 ## Synopsis
@@ -49,7 +50,7 @@ if(!file.exists(rawdata_file)) {
 storm_data <- read.csv(rawdata_csv)
 ```
 
-The raw data contains `r format(dim(storm_data)[1]), big.mark=",")` weather observations and `r dim(storm_data)[2]` variables for each observation.
+The raw data contains `r format(dim(storm_data)[1], big.mark=",")` weather observations and `r dim(storm_data)[2]` variables for each observation.
 
 The events in the database start in the year 1950 and end in November 2011. In the earlier years of the database there are generally fewer events recorded, most likely due to a lack of good records. More recent years are more complete.
 
@@ -58,14 +59,17 @@ The events in the database start in the year 1950 and end in November 2011. In t
 The first task is to create a smaller dataset with only those items relevant to the analysis.  A new variable called **year** is created to assist with group of events by calender year later on.
 
 ```{r cleanupdata}
-library(plyr)
+#library(plyr)
 events<-storm_data %>% select(EVTYPE, BGN_DATE, FATALITIES, INJURIES, PROPDMG,
                               PROPDMGEXP, CROPDMG, CROPDMGEXP, STATE)
 events$BGN_DATE <- as.Date(events$BGN_DATE, "%m/%d/%Y %H:%M:%S")
 events$year <- as.numeric(format(events$BGN_DATE, "%Y"))
 ```
 
-Two transformations have been applied to the data.  The first is combine the **DMG** and **DMGEXP** variables for crop and property damage.  In the raw data, the first contains a number and the second contains the units of measurement in US dollars (k=thousand, m=million and b=billion).  The correct scaling factor is applied to these and multiplied to create a new **dmg_k** variable to give a consistent economic damage value in thousand dollar units.
+Two transformations have been applied to the data.  The first is combine the **DMG** and **DMGEXP** variables for crop and property damage.  In the raw data, the first contains a number and the second contains the units of measurement in US dollars (k=thousand, m=million and b=billion).  Some observations have other indicators which could not be reliably interpreted, so these are set to zero for this analysis. 
+
+The correct scaling factor is applied to these and multiplied to create a new **dmg_k** variable to give a consistent economic damage value in thousand dollar units.  
+
 
 ```{r transformdata}
 # Convert crop damage into consistent units and multiply
@@ -83,18 +87,42 @@ events$PROPDMGEXP<-mapvalues(events$PROPDMGEXP,
 events$propdmg_k<-events$PROPDMG * as.numeric(as.character(events$PROPDMGEXP))
 ```
 
-The second transformation is to relabel the names of some events.  During exploratory analysis it became clear that some types of similar events are labelled differently due to spelling and othe
+The second transformation is to relabel the names of some events.  During exploratory analysis it became clear that some types of similar events are labelled differently due to spelling mistakes and multiple categorisations.
+
+For the analysis in this report,a certain number of categories have been relabelled as shown below.  There are over 900 different event types, and only a few key ones have been selected that are material in this report.  For example, all the different types of flooding are categorised as Flood.
 
 ```{r relabelevtype}
-events$EVTYPE<-revalue(events$EVTYPE, c("TSTM WIND"="THUNDERSTORM","FLASH FLOOD"="FLOOD", "FLASH FLOOD/FLOOD"="FLOOD", "FLASH FLOODING"="FLOOD", "HIGH WINDS"="HIGH WIND", "RIVER FLOOD"="FLOOD","THUNDERSTORM WIND"="THUNDERSTORM", "THUNDERSTORM WINDS"="THUNDERSTORM", "TORNADOES, TSTM WIND, HAIL"="TORNADO", "EXTREME HEAT"="HEAT","WILD/FOREST FIRE"="WILDFIRE", "DAMAGING FREEZE"="FREEZE", "HEAVY RAIN/SEVERE WEATHER"="HEAVY RAIN", "HURRICANE OPAL"="HURRICANE", "RIP CURRENTS"="RIP CURRENT", "EXTREME COLD/WIND CHILL"="COLD", "HURRICANE/TYPHOON"="HURRICANE", "WILD FIRES"="WILDFIRE", "STORM SURGE/TIDE"="STORM SURGE", "HURRICANE ERIN"="HURRICANE", "FLOOD/FLASH FLOOD"="FLOOD",
-                                        "HEAT WAVE"="HEAT", "River Flooding"="FLOOD", "EXCESSIVE HEAT"="HEAT", "FROST/FREEZE"="FREEZE", "COLD/WIND CHILL"="COLD", "EXTREME COLD"="COLD", "HEAVY SURF/HIGH SURF"="HIGH SURF"))
-
-detach("package:plyr", unload=TRUE)
+events$EVTYPE<-revalue(events$EVTYPE, c("TSTM WIND"="THUNDERSTORM","FLASH FLOOD"="FLOOD",
+                                        "FLASH FLOOD/FLOOD"="FLOOD", "FLASH FLOODING"="FLOOD", 
+                                        "HIGH WINDS"="HIGH WIND", "RIVER FLOOD"="FLOOD",
+                                        "THUNDERSTORM WIND"="THUNDERSTORM", "THUNDERSTORM WINDS"="THUNDERSTORM", 
+                                        "TORNADOES, TSTM WIND, HAIL"="TORNADO", "EXTREME HEAT"="HEAT","WILD/FOREST FIRE"="WILDFIRE",
+                                        "DAMAGING FREEZE"="FREEZE", "HEAVY RAIN/SEVERE WEATHER"="HEAVY RAIN", 
+                                        "HURRICANE OPAL"="HURRICANE", "RIP CURRENTS"="RIP CURRENT", "EXTREME COLD/WIND CHILL"="COLD",
+                                        "HURRICANE/TYPHOON"="HURRICANE", "WILD FIRES"="WILDFIRE",
+                                        "STORM SURGE/TIDE"="STORM SURGE", "HURRICANE ERIN"="HURRICANE", 
+                                        "FLOOD/FLASH FLOOD"="FLOOD",
+                                        "HEAT WAVE"="HEAT", "River Flooding"="FLOOD",
+                                        "EXCESSIVE HEAT"="HEAT", "FROST/FREEZE"="FREEZE",
+                                        "COLD/WIND CHILL"="COLD", "EXTREME COLD"="COLD",
+                                        "HEAVY SURF/HIGH SURF"="HIGH SURF"))
+#detach("package:plyr", unload=TRUE)
 ```
 
+### Creating an analytic dataset
+
+After cleaning and transforming the data,the last step is to summarise annually to be able to analyse the full public health and econmic effects.  
+
+The total injuries, fatalities, property and crop damage is calculated per year across all recorded event types, and then the percentage contribution from each event type can be calculated for that year
+
+summaries per year.  The 
 * Create a summarised set of data by year and EVTYPE
 
 ```{r processanalyticdata}
+
+# Helper function
+divide <- function(a,b) ifelse(b==0,0,a/b)
+
 annual_events <- events %>% group_by(year) %>% 
                             mutate(total_annual_events = n(),
                                    total_annual_injuries = sum(INJURIES),
@@ -111,19 +139,41 @@ annual_events <- events %>% group_by(year) %>%
                                    event_fatalities = sum(FATALITIES),
                                    event_property_damage = sum(propdmg_k),
                                    event_crop_damage = sum(cropdmg_k)) %>%
-                             mutate(event_injury_percent = ifelse(total_annual_injuries==0,0,event_injuries/total_annual_injuries),
-                                    event_fatality_percent = ifelse(total_annual_fatalities==0,0,event_fatalities/total_annual_fatalities),
-                                    event_property_damage_percent = ifelse(total_annual_property_damage==0,0,event_property_damage/total_annual_property_damage),
-                                    event_crop_damage_percent = ifelse(total_annual_crop_damage==0,0,event_crop_damage/total_annual_crop_damage))
+                             mutate(event_injury_percent = divide(event_injuries, total_annual_injuries),
+                                    event_fatality_percent = divide(event_fatalities,total_annual_fatalities),
+                                    event_property_damage_percent = divide(event_property_damage,total_annual_property_damage),
+                                    event_crop_damage_percent = divide(event_crop_damage,total_annual_crop_damage))
 
-a<-annual_events[annual_events$event_property_damage_percent>0.05,]
-b<-annual_events[annual_events$event_crop_damage_percent>0.05,]
-c<-annual_events[annual_events$event_fatality_percent>0.05,]
-d<-annual_events[annual_events$event_injury_percent>0.05,]
-key_events<-unique(c(as.character(a$EVTYPE),as.character(b$EVTYPE),as.character(c$EVTYPE),as.character(d$EVTYPE)))
+# Helper functions to summarise data frames which have a text column followed by 
+# numerical ones
+# crunch keeps specified rows in a data.frame and rolls up the others into a single
+# row with the label text.  
+crunch <- function(df,rowstokeep, rolleduptext,rowstosum=-(rowstokeep)) {
+        totals=list()
+        for (i in 2:ncol(df)) totals[i-1]<- sum(df[rowstosum,i])
+        rbind(df[rowstokeep,],setNames(data.frame(rolleduptext, totals), names(df)))
+}
+# totalcrunch calls crunch twice - first to crunch the data frame and again to add
+# a grand total row
+totalcrunch <- function(df, rowstokeep, rolleduptext){
+        crunch(crunch(df, rowstokeep, rolleduptext), 1:(length(rowstokeep)+1), 
+                          "GRAND TOTAL", 1:(length(rowstokeep)+1))
+}
 
-annual_events$event_category<-ifelse(annual_events$EVTYPE %in% key_events,as.character(annual_events$EVTYPE), "OTHER" )
+population_impact <- annual_events %>% group_by(EVTYPE) %>% 
+                summarise(events=sum(number_of_events),fatalities=sum(event_fatalities),
+                          injuries=sum(event_injuries)) %>% arrange(desc(fatalities))
 
+economic_impact <- annual_events %>% group_by(EVTYPE) %>% 
+                summarise(events=sum(number_of_events),property_damage=sum(event_property_damage),
+                          crop_damage=sum(event_crop_damage)) %>% arrange(desc(property_damage))
+
+top_ten_impacts <- cbind(totalcrunch(population_impact, 1:10, "(OTHERS)"),
+                         totalcrunch(economic_impact , 1:10, "(OTHERS)"))
+kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
+      caption = "Top 10 Public Health and economic impacts since 1950",
+      col.names = c("Event", "Observations", "Fatalities", "Injuries", 
+                    "Event", "Observations", "Property Damage ($'000)", "Crop Damage ($'000)"))
 ```
 
 ## Results

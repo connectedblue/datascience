@@ -116,9 +116,25 @@ $(document).ready(function () {
 </div>
 
 
-<div id="acquiring-the-data" class="section level2">
-<h2>Acquiring the data</h2>
-<p>The raw data is provided as an internet url. The dataset is rather large, so is only downloaded and loaded if it doesn’t already exist.</p>
+<div id="synopsis" class="section level2">
+<h2>Synopsis</h2>
+</div>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.</p>
+<p>The government have requested this report to help prepare for severe weather events, including prioritisation of resources for different types of events. The following questions are addressed:</p>
+<ol style="list-style-type: decimal">
+<li>Across the United States, which types of events are most harmful with respect to population health?</li>
+<li>Across the United States, which types of events have the greatest economic consequences?</li>
+</ol>
+<p>The analysis is based upon the U.S. National Oceanic and Atmospheric Administration’s (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.</p>
+</div>
+<div id="data-processing" class="section level2">
+<h2>Data Processing</h2>
+<p>A number of steps are required to prepare the data before analysis which are described below. Some decisions have been made during the processing which impact the results, so a justification is provided.</p>
+<div id="acquiring-the-data" class="section level3">
+<h3>Acquiring the data</h3>
+<p>The raw data was provided as an internet url. The dataset is rather large, so is only downloaded if it doesn’t already exist:</p>
 <pre class="r"><code>rawdata_url &lt;- &quot;https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2&quot;
 rawdata_file &lt;- &quot;storm_data.csv.bz2&quot;
 rawdata_csv &lt;- &quot;storm_data.csv&quot;
@@ -128,20 +144,20 @@ if(!file.exists(rawdata_file)) {
         bunzip2(filename = rawdata_file, destname = rawdata_csv)
 }
 storm_data &lt;- read.csv(rawdata_csv)</code></pre>
-<ul>
-<li>Get a subset of the columns which will be useful for answering the questions</li>
-<li>Convert Date strings to Date objects</li>
-<li><p>Add a year variable to record the year of the event</p></li>
-<li><p>Create a summarised set of data by year and EVTYPE</p></li>
-</ul>
-<pre class="r"><code>library(plyr)
-events&lt;-storm_data %&gt;% select(EVTYPE, BGN_DATE, END_DATE, FATALITIES, INJURIES, PROPDMG,
+<p>The raw data contains 902,297 weather observations and 37 variables for each observation.</p>
+<p>The events in the database start in the year 1950 and end in November 2011. In the earlier years of the database there are generally fewer events recorded, most likely due to a lack of good records. More recent years are more complete.</p>
+</div>
+<div id="cleaning-and-transforming-the-data" class="section level3">
+<h3>Cleaning and transforming the data</h3>
+<p>The first task is to create a smaller dataset with only those items relevant to the analysis. A new variable called <strong>year</strong> is created to assist with group of events by calender year later on.</p>
+<pre class="r"><code>#library(plyr)
+events&lt;-storm_data %&gt;% select(EVTYPE, BGN_DATE, FATALITIES, INJURIES, PROPDMG,
                               PROPDMGEXP, CROPDMG, CROPDMGEXP, STATE)
 events$BGN_DATE &lt;- as.Date(events$BGN_DATE, &quot;%m/%d/%Y %H:%M:%S&quot;)
-events$END_DATE &lt;- as.Date(events$END_DATE, &quot;%m/%d/%Y %H:%M:%S&quot;)
-events$year &lt;- as.numeric(format(events$BGN_DATE, &quot;%Y&quot;))
-
-# Convert crop damage into consistent units and multiply
+events$year &lt;- as.numeric(format(events$BGN_DATE, &quot;%Y&quot;))</code></pre>
+<p>Two transformations have been applied to the data. The first is combine the <strong>DMG</strong> and <strong>DMGEXP</strong> variables for crop and property damage. In the raw data, the first contains a number and the second contains the units of measurement in US dollars (k=thousand, m=million and b=billion). Some observations have other indicators which could not be reliably interpreted, so these are set to zero for this analysis.</p>
+<p>The correct scaling factor is applied to these and multiplied to create a new <strong>dmg_k</strong> variable to give a consistent economic damage value in thousand dollar units.</p>
+<pre class="r"><code># Convert crop damage into consistent units and multiply
 events$CROPDMGEXP&lt;-mapvalues(events$CROPDMGEXP, 
                              from = c(&quot;&quot;,  &quot;?&quot;, &quot;0&quot;, &quot;2&quot;, &quot;B&quot;, &quot;k&quot;, &quot;K&quot;, &quot;m&quot;, &quot;M&quot;),
                              to = c(0,0,0,0,1000000, 1, 1, 1000, 1000))
@@ -153,16 +169,34 @@ events$PROPDMGEXP&lt;-mapvalues(events$PROPDMGEXP,
                                       &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;, &quot;7&quot;, &quot;8&quot;, &quot;h&quot;, &quot;H&quot;), 
                              to = c(1000, 1000, 1, 1000000, 0,0,0,0,0,0,0,
                                     0,0,0,0,0,0,0,0))
-events$propdmg_k&lt;-events$PROPDMG * as.numeric(as.character(events$PROPDMGEXP))
+events$propdmg_k&lt;-events$PROPDMG * as.numeric(as.character(events$PROPDMGEXP))</code></pre>
+<p>The second transformation is to relabel the names of some events. During exploratory analysis it became clear that some types of similar events are labelled differently due to spelling mistakes and multiple categorisations.</p>
+<p>For the analysis in this report,a certain number of categories have been relabelled as shown below. There are over 900 different event types, and only a few key ones have been selected that are material in this report. For example, all the different types of flooding are categorised as Flood.</p>
+<pre class="r"><code>events$EVTYPE&lt;-revalue(events$EVTYPE, c(&quot;TSTM WIND&quot;=&quot;THUNDERSTORM&quot;,&quot;FLASH FLOOD&quot;=&quot;FLOOD&quot;,
+                                        &quot;FLASH FLOOD/FLOOD&quot;=&quot;FLOOD&quot;, &quot;FLASH FLOODING&quot;=&quot;FLOOD&quot;, 
+                                        &quot;HIGH WINDS&quot;=&quot;HIGH WIND&quot;, &quot;RIVER FLOOD&quot;=&quot;FLOOD&quot;,
+                                        &quot;THUNDERSTORM WIND&quot;=&quot;THUNDERSTORM&quot;, &quot;THUNDERSTORM WINDS&quot;=&quot;THUNDERSTORM&quot;, 
+                                        &quot;TORNADOES, TSTM WIND, HAIL&quot;=&quot;TORNADO&quot;, &quot;EXTREME HEAT&quot;=&quot;HEAT&quot;,&quot;WILD/FOREST FIRE&quot;=&quot;WILDFIRE&quot;,
+                                        &quot;DAMAGING FREEZE&quot;=&quot;FREEZE&quot;, &quot;HEAVY RAIN/SEVERE WEATHER&quot;=&quot;HEAVY RAIN&quot;, 
+                                        &quot;HURRICANE OPAL&quot;=&quot;HURRICANE&quot;, &quot;RIP CURRENTS&quot;=&quot;RIP CURRENT&quot;, &quot;EXTREME COLD/WIND CHILL&quot;=&quot;COLD&quot;,
+                                        &quot;HURRICANE/TYPHOON&quot;=&quot;HURRICANE&quot;, &quot;WILD FIRES&quot;=&quot;WILDFIRE&quot;,
+                                        &quot;STORM SURGE/TIDE&quot;=&quot;STORM SURGE&quot;, &quot;HURRICANE ERIN&quot;=&quot;HURRICANE&quot;, 
+                                        &quot;FLOOD/FLASH FLOOD&quot;=&quot;FLOOD&quot;,
+                                        &quot;HEAT WAVE&quot;=&quot;HEAT&quot;, &quot;River Flooding&quot;=&quot;FLOOD&quot;,
+                                        &quot;EXCESSIVE HEAT&quot;=&quot;HEAT&quot;, &quot;FROST/FREEZE&quot;=&quot;FREEZE&quot;,
+                                        &quot;COLD/WIND CHILL&quot;=&quot;COLD&quot;, &quot;EXTREME COLD&quot;=&quot;COLD&quot;,
+                                        &quot;HEAVY SURF/HIGH SURF&quot;=&quot;HIGH SURF&quot;))
+#detach(&quot;package:plyr&quot;, unload=TRUE)</code></pre>
+</div>
+<div id="creating-an-analytic-dataset" class="section level3">
+<h3>Creating an analytic dataset</h3>
+<p>After cleaning and transforming the data,the last step is to summarise annually to be able to analyse the full public health and econmic effects.</p>
+<p>The total injuries, fatalities, property and crop damage is calculated per year across all recorded event types, and then the percentage contribution from each event type can be calculated for that year</p>
+<p>summaries per year. The * Create a summarised set of data by year and EVTYPE</p>
+<pre class="r"><code># Helper function
+divide &lt;- function(a,b) ifelse(b==0,0,a/b)
 
-# Relabel some key events
-events$EVTYPE&lt;-revalue(events$EVTYPE, c(&quot;TSTM WIND&quot;=&quot;THUNDERSTORM&quot;,&quot;FLASH FLOOD&quot;=&quot;FLOOD&quot;, &quot;FLASH FLOOD/FLOOD&quot;=&quot;FLOOD&quot;, &quot;FLASH FLOODING&quot;=&quot;FLOOD&quot;, &quot;HIGH WINDS&quot;=&quot;HIGH WIND&quot;, &quot;RIVER FLOOD&quot;=&quot;FLOOD&quot;,&quot;THUNDERSTORM WIND&quot;=&quot;THUNDERSTORM&quot;, &quot;THUNDERSTORM WINDS&quot;=&quot;THUNDERSTORM&quot;, &quot;TORNADOES, TSTM WIND, HAIL&quot;=&quot;TORNADO&quot;, &quot;EXTREME HEAT&quot;=&quot;HEAT&quot;,&quot;WILD/FOREST FIRE&quot;=&quot;WILDFIRE&quot;, &quot;DAMAGING FREEZE&quot;=&quot;FREEZE&quot;, &quot;HEAVY RAIN/SEVERE WEATHER&quot;=&quot;HEAVY RAIN&quot;, &quot;HURRICANE OPAL&quot;=&quot;HURRICANE&quot;, &quot;RIP CURRENTS&quot;=&quot;RIP CURRENT&quot;, &quot;EXTREME COLD/WIND CHILL&quot;=&quot;COLD&quot;, &quot;HURRICANE/TYPHOON&quot;=&quot;HURRICANE&quot;, &quot;WILD FIRES&quot;=&quot;WILDFIRE&quot;, &quot;STORM SURGE/TIDE&quot;=&quot;STORM SURGE&quot;, &quot;HURRICANE ERIN&quot;=&quot;HURRICANE&quot;, &quot;FLOOD/FLASH FLOOD&quot;=&quot;FLOOD&quot;,
-                                        &quot;HEAT WAVE&quot;=&quot;HEAT&quot;, &quot;River Flooding&quot;=&quot;FLOOD&quot;, &quot;EXCESSIVE HEAT&quot;=&quot;HEAT&quot;, &quot;FROST/FREEZE&quot;=&quot;FREEZE&quot;, &quot;COLD/WIND CHILL&quot;=&quot;COLD&quot;, &quot;EXTREME COLD&quot;=&quot;COLD&quot;, &quot;HEAVY SURF/HIGH SURF&quot;=&quot;HIGH SURF&quot;))
-
-detach(&quot;package:plyr&quot;, unload=TRUE)</code></pre>
-<pre><code>## Warning: 'plyr' namespace cannot be unloaded:
-##   namespace 'plyr' is imported by 'scales', 'ggplot2' so cannot be unloaded</code></pre>
-<pre class="r"><code>annual_events &lt;- events %&gt;% group_by(year) %&gt;% 
+annual_events &lt;- events %&gt;% group_by(year) %&gt;% 
                             mutate(total_annual_events = n(),
                                    total_annual_injuries = sum(INJURIES),
                                    total_annual_fatalities = sum(FATALITIES),
@@ -178,21 +212,185 @@ detach(&quot;package:plyr&quot;, unload=TRUE)</code></pre>
                                    event_fatalities = sum(FATALITIES),
                                    event_property_damage = sum(propdmg_k),
                                    event_crop_damage = sum(cropdmg_k)) %&gt;%
-                             mutate(event_injury_percent = ifelse(total_annual_injuries==0,0,event_injuries/total_annual_injuries),
-                                    event_fatality_percent = ifelse(total_annual_fatalities==0,0,event_fatalities/total_annual_fatalities),
-                                    event_property_damage_percent = ifelse(total_annual_property_damage==0,0,event_property_damage/total_annual_property_damage),
-                                    event_crop_damage_percent = ifelse(total_annual_crop_damage==0,0,event_crop_damage/total_annual_crop_damage))
+                             mutate(event_injury_percent = divide(event_injuries, total_annual_injuries),
+                                    event_fatality_percent = divide(event_fatalities,total_annual_fatalities),
+                                    event_property_damage_percent = divide(event_property_damage,total_annual_property_damage),
+                                    event_crop_damage_percent = divide(event_crop_damage,total_annual_crop_damage))
 
-a&lt;-annual_events[annual_events$event_property_damage_percent&gt;0.05,]
-b&lt;-annual_events[annual_events$event_crop_damage_percent&gt;0.05,]
-c&lt;-annual_events[annual_events$event_fatality_percent&gt;0.05,]
-d&lt;-annual_events[annual_events$event_injury_percent&gt;0.05,]
-key_events&lt;-unique(c(as.character(a$EVTYPE),as.character(b$EVTYPE),as.character(c$EVTYPE),as.character(d$EVTYPE)))
+# Helper functions to summarise data frames which have a text column followed by 
+# numerical ones
+# crunch keeps specified rows in a data.frame and rolls up the others into a single
+# row with the label text.  
+crunch &lt;- function(df,rowstokeep, rolleduptext,rowstosum=-(rowstokeep)) {
+        totals=list()
+        for (i in 2:ncol(df)) totals[i-1]&lt;- sum(df[rowstosum,i])
+        rbind(df[rowstokeep,],setNames(data.frame(rolleduptext, totals), names(df)))
+}
+# totalcrunch calls crunch twice - first to crunch the data frame and again to add
+# a grand total row
+totalcrunch &lt;- function(df, rowstokeep, rolleduptext){
+        crunch(crunch(df, rowstokeep, rolleduptext), 1:(length(rowstokeep)+1), 
+                          &quot;GRAND TOTAL&quot;, 1:(length(rowstokeep)+1))
+}
 
-annual_events$event_category&lt;-ifelse(annual_events$EVTYPE %in% key_events,as.character(annual_events$EVTYPE), &quot;OTHER&quot; )</code></pre>
+population_impact &lt;- annual_events %&gt;% group_by(EVTYPE) %&gt;% 
+                summarise(events=sum(number_of_events),fatalities=sum(event_fatalities),
+                          injuries=sum(event_injuries)) %&gt;% arrange(desc(fatalities))
+
+economic_impact &lt;- annual_events %&gt;% group_by(EVTYPE) %&gt;% 
+                summarise(events=sum(number_of_events),property_damage=sum(event_property_damage),
+                          crop_damage=sum(event_crop_damage)) %&gt;% arrange(desc(property_damage))
+
+top_ten_impacts &lt;- cbind(totalcrunch(population_impact, 1:10, &quot;(OTHERS)&quot;),
+                         totalcrunch(economic_impact , 1:10, &quot;(OTHERS)&quot;))
+kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
+      caption = &quot;Top 10 Public Health and economic impacts since 1950&quot;,
+      col.names = c(&quot;Event&quot;, &quot;Observations&quot;, &quot;Fatalities&quot;, &quot;Injuries&quot;, 
+                    &quot;Event&quot;, &quot;Observations&quot;, &quot;Property Damage ($'000)&quot;, &quot;Crop Damage ($'000)&quot;))</code></pre>
+<table>
+<caption>Top 10 Public Health and economic impacts since 1950</caption>
+<thead>
+<tr class="header">
+<th align="left">Event</th>
+<th align="right">Observations</th>
+<th align="right">Fatalities</th>
+<th align="right">Injuries</th>
+<th align="left">Event</th>
+<th align="right">Observations</th>
+<th align="right">Property Damage ($’000)</th>
+<th align="right">Crop Damage ($’000)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">TORNADO</td>
+<td align="right">60,653</td>
+<td align="right">5,658</td>
+<td align="right">91,346</td>
+<td align="left">FLOOD</td>
+<td align="right">81,109</td>
+<td align="right">166,777,874</td>
+<td align="right">12,251,470</td>
+</tr>
+<tr class="even">
+<td align="left">HEAT</td>
+<td align="right">2,541</td>
+<td align="right">3,108</td>
+<td align="right">9,089</td>
+<td align="left">HURRICANE</td>
+<td align="right">278</td>
+<td align="right">84,605,105</td>
+<td align="right">5,504,793</td>
+</tr>
+<tr class="odd">
+<td align="left">FLOOD</td>
+<td align="right">81,109</td>
+<td align="right">1,500</td>
+<td align="right">8,592</td>
+<td align="left">TORNADO</td>
+<td align="right">60,653</td>
+<td align="right">58,537,160</td>
+<td align="right">417,453</td>
+</tr>
+<tr class="even">
+<td align="left">LIGHTNING</td>
+<td align="right">15,754</td>
+<td align="right">816</td>
+<td align="right">5,230</td>
+<td align="left">STORM SURGE</td>
+<td align="right">409</td>
+<td align="right">47,964,724</td>
+<td align="right">855</td>
+</tr>
+<tr class="odd">
+<td align="left">THUNDERSTORM</td>
+<td align="right">323,391</td>
+<td align="right">702</td>
+<td align="right">9,365</td>
+<td align="left">HAIL</td>
+<td align="right">288,661</td>
+<td align="right">15,732,267</td>
+<td align="right">3,025,954</td>
+</tr>
+<tr class="even">
+<td align="left">RIP CURRENT</td>
+<td align="right">774</td>
+<td align="right">572</td>
+<td align="right">529</td>
+<td align="left">THUNDERSTORM</td>
+<td align="right">323,391</td>
+<td align="right">9,704,923</td>
+<td align="right">1,160,505</td>
+</tr>
+<tr class="odd">
+<td align="left">COLD</td>
+<td align="right">2,268</td>
+<td align="right">415</td>
+<td align="right">315</td>
+<td align="left">WILDFIRE</td>
+<td align="right">4,222</td>
+<td align="right">8,391,044</td>
+<td align="right">402,270</td>
+</tr>
+<tr class="even">
+<td align="left">HIGH WIND</td>
+<td align="right">21,745</td>
+<td align="right">283</td>
+<td align="right">1,439</td>
+<td align="left">TROPICAL STORM</td>
+<td align="right">690</td>
+<td align="right">7,703,891</td>
+<td align="right">678,346</td>
+</tr>
+<tr class="odd">
+<td align="left">AVALANCHE</td>
+<td align="right">386</td>
+<td align="right">224</td>
+<td align="right">170</td>
+<td align="left">WINTER STORM</td>
+<td align="right">11,433</td>
+<td align="right">6,688,497</td>
+<td align="right">26,944</td>
+</tr>
+<tr class="even">
+<td align="left">WINTER STORM</td>
+<td align="right">11,433</td>
+<td align="right">206</td>
+<td align="right">1,321</td>
+<td align="left">HIGH WIND</td>
+<td align="right">21,745</td>
+<td align="right">5,878,370</td>
+<td align="right">679,292</td>
+</tr>
+<tr class="odd">
+<td align="left">(OTHERS)</td>
+<td align="right">382,243</td>
+<td align="right">1,661</td>
+<td align="right">13,132</td>
+<td align="left">(OTHERS)</td>
+<td align="right">109,706</td>
+<td align="right">15,334,787</td>
+<td align="right">24,956,310</td>
+</tr>
+<tr class="even">
+<td align="left">GRAND TOTAL</td>
+<td align="right">902,297</td>
+<td align="right">15,145</td>
+<td align="right">140,528</td>
+<td align="left">GRAND TOTAL</td>
+<td align="right">902,297</td>
+<td align="right">427,318,642</td>
+<td align="right">49,104,192</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="results" class="section level2">
+<h2>Results</h2>
 <pre class="r"><code>first_year&lt;-2001
 lowest_percent=0.01
-# event_summary &lt;- annual_events %&gt;% filter(year&gt;1990) %&gt;% group_by(EVTYPE) %&gt;%
+
 event_summary &lt;- annual_events  %&gt;% filter(year&gt;first_year) %&gt;% group_by(EVTYPE) %&gt;%
                  summarise(number_of_events = sum(number_of_events),
                            event_injuries = sum(event_injuries),
