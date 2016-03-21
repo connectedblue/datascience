@@ -143,7 +143,18 @@ annual_events <- events %>% group_by(year) %>%
                                     event_fatality_percent = divide(event_fatalities,total_annual_fatalities),
                                     event_property_damage_percent = divide(event_property_damage,total_annual_property_damage),
                                     event_crop_damage_percent = divide(event_crop_damage,total_annual_crop_damage))
+```
 
+The dataset **annual_events** is the basis for the analysis
+
+```{r exampleyear}
+
+year_2001 <- annual_events %>% filter(year==2001) %>% arrange(desc(event_fatalities))
+
+```
+
+
+```{r toptenimpacts}
 # Helper functions to summarise data frames which have a text column followed by 
 # numerical ones
 # crunch keeps specified rows in a data.frame and rolls up the others into a single
@@ -160,18 +171,21 @@ totalcrunch <- function(df, rowstokeep, rolleduptext){
                           "GRAND TOTAL", 1:(length(rowstokeep)+1))
 }
 
-population_impact <- annual_events %>% group_by(EVTYPE) %>% 
+start_year <- 2001
+analysis_events <- annual_events  %>% filter(year>start_year) 
+
+population_impact <- analysis_events %>% group_by(EVTYPE) %>% 
                 summarise(events=sum(number_of_events),fatalities=sum(event_fatalities),
                           injuries=sum(event_injuries)) %>% arrange(desc(fatalities))
 
-economic_impact <- annual_events %>% group_by(EVTYPE) %>% 
+economic_impact <- analysis_events %>% group_by(EVTYPE) %>% 
                 summarise(events=sum(number_of_events),property_damage=sum(event_property_damage),
                           crop_damage=sum(event_crop_damage)) %>% arrange(desc(property_damage))
 
 top_ten_impacts <- cbind(totalcrunch(population_impact, 1:10, "(OTHERS)"),
                          totalcrunch(economic_impact , 1:10, "(OTHERS)"))
 kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
-      caption = "Top 10 Public Health and economic impacts since 1950",
+      caption = sprintf("Top 10 Public Health and economic impacts %d - 2011", start_year),
       col.names = c("Event", "Observations", "Fatalities", "Injuries", 
                     "Event", "Observations", "Property Damage ($'000)", "Crop Damage ($'000)"))
 ```
@@ -179,10 +193,9 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 ## Results
 
 ```{r graphs}
-first_year<-2001
 lowest_percent=0.01
 
-event_summary <- annual_events  %>% filter(year>first_year) %>% group_by(EVTYPE) %>%
+event_summary <-  analysis_events %>% group_by(EVTYPE) %>%
                  summarise(number_of_events = sum(number_of_events),
                            event_injuries = sum(event_injuries),
                            event_fatalities = sum(event_fatalities),
@@ -206,7 +219,7 @@ ggplot(subset(event_summary, (m_fatality_percent >lowest_percent | m_injury_perc
                 xlab("Average proportion of annual injuries") +
                 geom_segment(y=lowest_percent,yend=lowest_percent,x=0.0001,xend=1, colour="blue", linetype="dashed") +
                 geom_segment(y=0.0001,yend=1,x=lowest_percent,xend=lowest_percent, colour="blue", linetype="dashed") +
-                ggtitle(paste0("Weather events with the biggest impact on Population Health since ", first_year))
+                ggtitle(sprintf("Weather events with the biggest impact on Population Health: %d - 2011", start_year))
 
 ggplot(subset(event_summary, m_crop_percent >lowest_percent | m_property_percent >lowest_percent),
                 aes(m_crop_percent, m_property_percent), height=800, width=800) + 
@@ -220,7 +233,7 @@ ggplot(subset(event_summary, m_crop_percent >lowest_percent | m_property_percent
                 xlab("Average proportion of crop damage") +
                 geom_segment(y=lowest_percent,yend=lowest_percent,x=0.0000001,xend=1, colour="blue", linetype="dashed") +
                 geom_segment(y=0.0000001,yend=1,x=lowest_percent,xend=lowest_percent, colour="blue", linetype="dashed") +
-                ggtitle(paste0("Weather events with the biggest Economics impact since ", first_year))        
+                ggtitle(sprintf("Weather events with the biggest economic impact: %d - 2011", start_year))        
 
 
 
