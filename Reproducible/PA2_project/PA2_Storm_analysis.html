@@ -229,162 +229,298 @@ crunch &lt;- function(df,rowstokeep, rolleduptext,rowstosum=-(rowstokeep)) {
 }
 # totalcrunch calls crunch twice - first to crunch the data frame and again to add
 # a grand total row
-totalcrunch &lt;- function(df, rowstokeep, rolleduptext){
+totalcrunch &lt;- function(df, rowstokeep, rolleduptext, totaltext=&quot;GRAND TOTAL&quot;){
         crunch(crunch(df, rowstokeep, rolleduptext), 1:(length(rowstokeep)+1), 
-                          &quot;GRAND TOTAL&quot;, 1:(length(rowstokeep)+1))
+                          totaltext, 1:(length(rowstokeep)+1))
 }
+
+# sumcolumn groups a dataframe by a column and then sums by that column
+sumcolumn &lt;- function(df, grouping_col, sum_col){
+        df %&gt;% group_by_(grouping_col) %&gt;% 
+                summarise_(.dots=setNames(list(sprintf(&quot;sum(%s)&quot;,sum_col)), sum_col))  %&gt;%
+                arrange_(sprintf(&quot;desc(%s)&quot;,sum_col))
+}
+
+summary_table&lt;- function (df,grp_by, col_1, col_2, caption=&quot;&quot;, top=10){
+        lhs &lt;- sumcolumn(df, grp_by,col_1[1])
+        rhs &lt;- sumcolumn(df, grp_by,col_2[1])
+        top_impacts &lt;- cbind(data.frame(n=c(1:top,&quot;&quot;,&quot;&quot;)),
+                                 totalcrunch(lhs, 1:top, &quot;(OTHERS)&quot;),
+                                 totalcrunch(rhs , 1:top, &quot;(OTHERS)&quot;,&quot;&quot;)
+                                 )
+        
+        kable(top_impacts, digits=0, format.args=list(big.mark = ','),
+              caption = caption,
+              col.names = c(&quot;&quot;,&quot;&quot;, col_1[2], &quot;&quot;, col_2[2]))
+        
+}
+
 
 start_year &lt;- 2001
 analysis_events &lt;- annual_events  %&gt;% filter(year&gt;start_year) 
 
-population_impact &lt;- analysis_events %&gt;% group_by(EVTYPE) %&gt;% 
-                summarise(events=sum(number_of_events),fatalities=sum(event_fatalities),
-                          injuries=sum(event_injuries)) %&gt;% arrange(desc(fatalities))
+fatalities&lt;-sumcolumn(analysis_events, &quot;EVTYPE&quot;,&quot;event_fatalities&quot;)
+injuries&lt;-sumcolumn(analysis_events, &quot;EVTYPE&quot;,&quot;event_injuries&quot;)
+property&lt;-sumcolumn(analysis_events, &quot;EVTYPE&quot;,&quot;event_property_damage&quot;)
+crops&lt;-sumcolumn(analysis_events, &quot;EVTYPE&quot;,&quot;event_crop_damage&quot;)
 
-economic_impact &lt;- analysis_events %&gt;% group_by(EVTYPE) %&gt;% 
-                summarise(events=sum(number_of_events),property_damage=sum(event_property_damage),
-                          crop_damage=sum(event_crop_damage)) %&gt;% arrange(desc(property_damage))
 
-top_ten_impacts &lt;- cbind(totalcrunch(population_impact, 1:10, &quot;(OTHERS)&quot;),
-                         totalcrunch(economic_impact , 1:10, &quot;(OTHERS)&quot;))
+top_ten_impacts &lt;- cbind(data.frame(n=c(1:10,&quot;&quot;,&quot;&quot;)),
+                         totalcrunch(fatalities, 1:10, &quot;(OTHERS)&quot;),
+                         totalcrunch(injuries , 1:10, &quot;(OTHERS)&quot;,&quot;&quot;),
+                         totalcrunch(property , 1:10, &quot;(OTHERS)&quot;,&quot;&quot;),
+                         totalcrunch(crops , 1:10, &quot;(OTHERS)&quot;,&quot;&quot;)
+                         )
+
 kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
       caption = sprintf(&quot;Top 10 Public Health and economic impacts %d - 2011&quot;, start_year),
-      col.names = c(&quot;Event&quot;, &quot;Observations&quot;, &quot;Fatalities&quot;, &quot;Injuries&quot;, 
-                    &quot;Event&quot;, &quot;Observations&quot;, &quot;Property Damage ($'000)&quot;, &quot;Crop Damage ($'000)&quot;))</code></pre>
+      col.names = c(&quot;&quot;,&quot;&quot;, &quot;Fatalities&quot;, &quot;&quot;, &quot;Injuries&quot;, &quot;&quot;,&quot;Property Damage ($'000)&quot;,&quot;&quot;, &quot;Crop Damage ($'000)&quot;))</code></pre>
 <table>
 <caption>Top 10 Public Health and economic impacts 2001 - 2011</caption>
 <thead>
 <tr class="header">
-<th align="left">Event</th>
-<th align="right">Observations</th>
+<th align="left"></th>
+<th align="left"></th>
 <th align="right">Fatalities</th>
+<th align="left"></th>
 <th align="right">Injuries</th>
-<th align="left">Event</th>
-<th align="right">Observations</th>
+<th align="left"></th>
 <th align="right">Property Damage ($’000)</th>
+<th align="left"></th>
 <th align="right">Crop Damage ($’000)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
+<td align="left">1</td>
 <td align="left">TORNADO</td>
-<td align="right">15,167</td>
 <td align="right">1,112</td>
+<td align="left">TORNADO</td>
 <td align="right">13,588</td>
 <td align="left">FLOOD</td>
-<td align="right">54,103</td>
 <td align="right">144,097,051</td>
-<td align="right">4,404,421</td>
+<td align="left">DROUGHT</td>
+<td align="right">5,423,625</td>
 </tr>
 <tr class="even">
+<td align="left">2</td>
 <td align="left">HEAT</td>
-<td align="right">1,610</td>
 <td align="right">920</td>
+<td align="left">HEAT</td>
 <td align="right">4,019</td>
 <td align="left">HURRICANE</td>
-<td align="right">128</td>
 <td align="right">72,342,695</td>
+<td align="left">FLOOD</td>
+<td align="right">4,404,421</td>
+</tr>
+<tr class="odd">
+<td align="left">3</td>
+<td align="left">FLOOD</td>
+<td align="right">786</td>
+<td align="left">THUNDERSTORM</td>
+<td align="right">2,546</td>
+<td align="left">STORM SURGE</td>
+<td align="right">47,809,503</td>
+<td align="left">HURRICANE</td>
 <td align="right">3,056,383</td>
 </tr>
-<tr class="odd">
-<td align="left">FLOOD</td>
-<td align="right">54,103</td>
-<td align="right">786</td>
-<td align="right">818</td>
-<td align="left">STORM SURGE</td>
-<td align="right">251</td>
-<td align="right">47,809,503</td>
-<td align="right">850</td>
-</tr>
 <tr class="even">
+<td align="left">4</td>
 <td align="left">RIP CURRENT</td>
-<td align="right">492</td>
 <td align="right">384</td>
-<td align="right">290</td>
-<td align="left">TORNADO</td>
-<td align="right">15,167</td>
-<td align="right">18,406,923</td>
-<td align="right">220,590</td>
-</tr>
-<tr class="odd">
 <td align="left">LIGHTNING</td>
-<td align="right">7,899</td>
-<td align="right">370</td>
 <td align="right">2,250</td>
+<td align="left">TORNADO</td>
+<td align="right">18,406,923</td>
 <td align="left">HAIL</td>
-<td align="right">142,257</td>
-<td align="right">9,174,278</td>
 <td align="right">1,393,288</td>
 </tr>
+<tr class="odd">
+<td align="left">5</td>
+<td align="left">LIGHTNING</td>
+<td align="right">370</td>
+<td align="left">HURRICANE</td>
+<td align="right">1,291</td>
+<td align="left">HAIL</td>
+<td align="right">9,174,278</td>
+<td align="left">FREEZE</td>
+<td align="right">1,094,086</td>
+</tr>
 <tr class="even">
+<td align="left">6</td>
 <td align="left">COLD</td>
-<td align="right">1,612</td>
 <td align="right">233</td>
-<td align="right">36</td>
+<td align="left">WILDFIRE</td>
+<td align="right">1,051</td>
 <td align="left">THUNDERSTORM</td>
-<td align="right">142,530</td>
 <td align="right">4,976,962</td>
+<td align="left">THUNDERSTORM</td>
 <td align="right">577,897</td>
 </tr>
 <tr class="odd">
+<td align="left">7</td>
 <td align="left">THUNDERSTORM</td>
-<td align="right">142,530</td>
 <td align="right">207</td>
-<td align="right">2,546</td>
+<td align="left">FLOOD</td>
+<td align="right">818</td>
 <td align="left">WILDFIRE</td>
-<td align="right">3,077</td>
 <td align="right">4,959,547</td>
-<td align="right">297,479</td>
-</tr>
-<tr class="even">
-<td align="left">AVALANCHE</td>
-<td align="right">274</td>
-<td align="right">145</td>
-<td align="right">103</td>
 <td align="left">HIGH WIND</td>
-<td align="right">14,749</td>
-<td align="right">4,833,336</td>
 <td align="right">494,272</td>
 </tr>
+<tr class="even">
+<td align="left">8</td>
+<td align="left">AVALANCHE</td>
+<td align="right">145</td>
+<td align="left">HIGH WIND</td>
+<td align="right">486</td>
+<td align="left">HIGH WIND</td>
+<td align="right">4,833,336</td>
+<td align="left">HEAT</td>
+<td align="right">492,578</td>
+</tr>
 <tr class="odd">
+<td align="left">9</td>
 <td align="left">HIGH SURF</td>
-<td align="right">697</td>
 <td align="right">118</td>
-<td align="right">178</td>
+<td align="left">HAIL</td>
+<td align="right">456</td>
 <td align="left">TROPICAL STORM</td>
-<td align="right">584</td>
 <td align="right">2,008,361</td>
+<td align="left">TROPICAL STORM</td>
 <td align="right">410,061</td>
 </tr>
 <tr class="even">
+<td align="left">10</td>
 <td align="left">HIGH WIND</td>
-<td align="right">14,749</td>
 <td align="right">97</td>
-<td align="right">486</td>
+<td align="left">WINTER WEATHER</td>
+<td align="right">343</td>
 <td align="left">ICE STORM</td>
-<td align="right">1,267</td>
 <td align="right">1,964,718</td>
-<td align="right">8,665</td>
+<td align="left">HEAVY RAIN</td>
+<td align="right">381,045</td>
 </tr>
 <tr class="odd">
+<td align="left"></td>
 <td align="left">(OTHERS)</td>
-<td align="right">214,597</td>
 <td align="right">676</td>
-<td align="right">5,295</td>
 <td align="left">(OTHERS)</td>
-<td align="right">79,617</td>
+<td align="right">2,761</td>
+<td align="left">(OTHERS)</td>
 <td align="right">4,575,873</td>
-<td align="right">7,586,344</td>
+<td align="left">(OTHERS)</td>
+<td align="right">722,594</td>
 </tr>
 <tr class="even">
+<td align="left"></td>
 <td align="left">GRAND TOTAL</td>
-<td align="right">453,730</td>
 <td align="right">5,048</td>
+<td align="left"></td>
 <td align="right">29,609</td>
-<td align="left">GRAND TOTAL</td>
-<td align="right">453,730</td>
+<td align="left"></td>
 <td align="right">315,149,246</td>
+<td align="left"></td>
 <td align="right">18,450,250</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>summary_table(analysis_events, &quot;EVTYPE&quot;, c(&quot;event_fatalities&quot;,&quot;Fatalities&quot;), c(&quot;event_property_damage&quot;,&quot;Injuries&quot;), sprintf(&quot;Top 10 Public Health and economic impacts %d - 2011&quot;, start_year))</code></pre>
+<table>
+<caption>Top 10 Public Health and economic impacts 2001 - 2011</caption>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left"></th>
+<th align="right">Fatalities</th>
+<th align="left"></th>
+<th align="right">Injuries</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">1</td>
+<td align="left">TORNADO</td>
+<td align="right">1,112</td>
+<td align="left">FLOOD</td>
+<td align="right">144,097,051</td>
+</tr>
+<tr class="even">
+<td align="left">2</td>
+<td align="left">HEAT</td>
+<td align="right">920</td>
+<td align="left">HURRICANE</td>
+<td align="right">72,342,695</td>
+</tr>
+<tr class="odd">
+<td align="left">3</td>
+<td align="left">FLOOD</td>
+<td align="right">786</td>
+<td align="left">STORM SURGE</td>
+<td align="right">47,809,503</td>
+</tr>
+<tr class="even">
+<td align="left">4</td>
+<td align="left">RIP CURRENT</td>
+<td align="right">384</td>
+<td align="left">TORNADO</td>
+<td align="right">18,406,923</td>
+</tr>
+<tr class="odd">
+<td align="left">5</td>
+<td align="left">LIGHTNING</td>
+<td align="right">370</td>
+<td align="left">HAIL</td>
+<td align="right">9,174,278</td>
+</tr>
+<tr class="even">
+<td align="left">6</td>
+<td align="left">COLD</td>
+<td align="right">233</td>
+<td align="left">THUNDERSTORM</td>
+<td align="right">4,976,962</td>
+</tr>
+<tr class="odd">
+<td align="left">7</td>
+<td align="left">THUNDERSTORM</td>
+<td align="right">207</td>
+<td align="left">WILDFIRE</td>
+<td align="right">4,959,547</td>
+</tr>
+<tr class="even">
+<td align="left">8</td>
+<td align="left">AVALANCHE</td>
+<td align="right">145</td>
+<td align="left">HIGH WIND</td>
+<td align="right">4,833,336</td>
+</tr>
+<tr class="odd">
+<td align="left">9</td>
+<td align="left">HIGH SURF</td>
+<td align="right">118</td>
+<td align="left">TROPICAL STORM</td>
+<td align="right">2,008,361</td>
+</tr>
+<tr class="even">
+<td align="left">10</td>
+<td align="left">HIGH WIND</td>
+<td align="right">97</td>
+<td align="left">ICE STORM</td>
+<td align="right">1,964,718</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">(OTHERS)</td>
+<td align="right">676</td>
+<td align="left">(OTHERS)</td>
+<td align="right">4,575,873</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">GRAND TOTAL</td>
+<td align="right">5,048</td>
+<td align="left"></td>
+<td align="right">315,149,246</td>
 </tr>
 </tbody>
 </table>

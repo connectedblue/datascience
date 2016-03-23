@@ -166,28 +166,55 @@ crunch <- function(df,rowstokeep, rolleduptext,rowstosum=-(rowstokeep)) {
 }
 # totalcrunch calls crunch twice - first to crunch the data frame and again to add
 # a grand total row
-totalcrunch <- function(df, rowstokeep, rolleduptext){
+totalcrunch <- function(df, rowstokeep, rolleduptext, totaltext="GRAND TOTAL"){
         crunch(crunch(df, rowstokeep, rolleduptext), 1:(length(rowstokeep)+1), 
-                          "GRAND TOTAL", 1:(length(rowstokeep)+1))
+                          totaltext, 1:(length(rowstokeep)+1))
 }
+
+# sumcolumn groups a dataframe by a column and then sums by that column
+sumcolumn <- function(df, grouping_col, sum_col){
+        df %>% group_by_(grouping_col) %>% 
+                summarise_(.dots=setNames(list(sprintf("sum(%s)",sum_col)), sum_col))  %>%
+                arrange_(sprintf("desc(%s)",sum_col))
+}
+
+summary_table<- function (df,grp_by, col_1, col_2, caption="", top=10){
+        lhs <- sumcolumn(df, grp_by,col_1[1])
+        rhs <- sumcolumn(df, grp_by,col_2[1])
+        top_impacts <- cbind(data.frame(n=c(1:top,"","")),
+                                 totalcrunch(lhs, 1:top, "(OTHERS)"),
+                                 totalcrunch(rhs , 1:top, "(OTHERS)","")
+                                 )
+        
+        kable(top_impacts, digits=0, format.args=list(big.mark = ','),
+              caption = caption,
+              col.names = c("","", col_1[2], "", col_2[2]))
+        
+}
+
 
 start_year <- 2001
 analysis_events <- annual_events  %>% filter(year>start_year) 
 
-population_impact <- analysis_events %>% group_by(EVTYPE) %>% 
-                summarise(events=sum(number_of_events),fatalities=sum(event_fatalities),
-                          injuries=sum(event_injuries)) %>% arrange(desc(fatalities))
+fatalities<-sumcolumn(analysis_events, "EVTYPE","event_fatalities")
+injuries<-sumcolumn(analysis_events, "EVTYPE","event_injuries")
+property<-sumcolumn(analysis_events, "EVTYPE","event_property_damage")
+crops<-sumcolumn(analysis_events, "EVTYPE","event_crop_damage")
 
-economic_impact <- analysis_events %>% group_by(EVTYPE) %>% 
-                summarise(events=sum(number_of_events),property_damage=sum(event_property_damage),
-                          crop_damage=sum(event_crop_damage)) %>% arrange(desc(property_damage))
 
-top_ten_impacts <- cbind(totalcrunch(population_impact, 1:10, "(OTHERS)"),
-                         totalcrunch(economic_impact , 1:10, "(OTHERS)"))
+top_ten_impacts <- cbind(data.frame(n=c(1:10,"","")),
+                         totalcrunch(fatalities, 1:10, "(OTHERS)"),
+                         totalcrunch(injuries , 1:10, "(OTHERS)",""),
+                         totalcrunch(property , 1:10, "(OTHERS)",""),
+                         totalcrunch(crops , 1:10, "(OTHERS)","")
+                         )
+
 kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
       caption = sprintf("Top 10 Public Health and economic impacts %d - 2011", start_year),
-      col.names = c("Event", "Observations", "Fatalities", "Injuries", 
-                    "Event", "Observations", "Property Damage ($'000)", "Crop Damage ($'000)"))
+      col.names = c("","", "Fatalities", "", "Injuries", "","Property Damage ($'000)","", "Crop Damage ($'000)"))
+
+summary_table(analysis_events, "EVTYPE", c("event_fatalities","Fatalities"), c("event_injuries","Injuries"), sprintf("Top 10 Public Health and economic impacts %d - 2011", start_year))
+              
 ```
 
 ## Results
