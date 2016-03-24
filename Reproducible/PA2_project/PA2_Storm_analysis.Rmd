@@ -123,17 +123,19 @@ summaries per year.  The
 # Helper function
 divide <- function(a,b) ifelse(b==0,0,a/b)
 
-annual_events <- events %>% group_by(year) %>% 
+group_events <- function(grp) {
+                events %>% group_by(year) %>% 
                             mutate(total_annual_events = n(),
                                    total_annual_injuries = sum(INJURIES),
                                    total_annual_fatalities = sum(FATALITIES),
                                    total_annual_property_damage = sum(propdmg_k),
                                    total_annual_crop_damage = sum(cropdmg_k)) %>% 
-                            group_by(year, EVTYPE, total_annual_events,
-                                                   total_annual_injuries,
-                                                   total_annual_fatalities,
-                                                   total_annual_property_damage,
-                                                   total_annual_crop_damage)  %>%
+                            group_by_(.dots=c("year", sprintf("%s",grp),
+                                              "total_annual_events",
+                                              "total_annual_injuries", 
+                                              "total_annual_fatalities",
+                                              "total_annual_property_damage", 
+                                              "total_annual_crop_damage" ))  %>%
                             summarise(number_of_events = n(),
                                    event_injuries = sum(INJURIES),
                                    event_fatalities = sum(FATALITIES),
@@ -143,15 +145,21 @@ annual_events <- events %>% group_by(year) %>%
                                     event_fatality_percent = divide(event_fatalities,total_annual_fatalities),
                                     event_property_damage_percent = divide(event_property_damage,total_annual_property_damage),
                                     event_crop_damage_percent = divide(event_crop_damage,total_annual_crop_damage))
+}
+
+annual_events <- group_events("EVTYPE")
+annual_states <- group_events("STATE")
+
+
 ```
 
 The dataset **annual_events** is the basis for the analysis
 
-```{r exampleyear}
+---------------------------     -----------------------------------------------
+Number of obsersavations        `r sum(annual_events$total_annual_events)`
+Number of Fatalities            `r sum(annual_events$total_annual_fatalities)`
+Number of obsersavations        `r sum(annual_events$total_annualinjuries)`
 
-year_2001 <- annual_events %>% filter(year==2001) %>% arrange(desc(event_fatalities))
-
-```
 
 
 ```{r toptenimpacts}
@@ -192,37 +200,48 @@ summary_table<- function (df,grp_by, col_1, col_2, caption="", top=10){
         
 }
 
+```
 
+
+## Results
+
+### Weather events with the greatest economic and health impacts
+
+```{r resultshealth}
 start_year <- 2001
-analysis_events <- annual_events  %>% filter(year>start_year) 
-
-fatalities<-sumcolumn(analysis_events, "EVTYPE","event_fatalities")
-injuries<-sumcolumn(analysis_events, "EVTYPE","event_injuries")
-property<-sumcolumn(analysis_events, "EVTYPE","event_property_damage")
-crops<-sumcolumn(analysis_events, "EVTYPE","event_crop_damage")
+analysis_annual_events <- annual_events  %>% filter(year>start_year) 
+analysis_annual_states <- annual_states  %>% filter(year>start_year) 
 
 
-top_ten_impacts <- cbind(data.frame(n=c(1:10,"","")),
-                         totalcrunch(fatalities, 1:10, "(OTHERS)"),
-                         totalcrunch(injuries , 1:10, "(OTHERS)",""),
-                         totalcrunch(property , 1:10, "(OTHERS)",""),
-                         totalcrunch(crops , 1:10, "(OTHERS)","")
-                         )
-
-kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
-      caption = sprintf("Top 10 Public Health and economic impacts %d - 2011", start_year),
-      col.names = c("","", "Fatalities", "", "Injuries", "","Property Damage ($'000)","", "Crop Damage ($'000)"))
-
-summary_table(analysis_events, "EVTYPE", c("event_fatalities","Fatalities"), c("event_injuries","Injuries"), sprintf("Top 10 Public Health and economic impacts %d - 2011", start_year))
+summary_table(analysis_annual_events, "EVTYPE", c("event_fatalities","Fatalities"), c("event_injuries","Injuries"), sprintf("Top 10 Public Health impacts %d - 2011", start_year))
               
 ```
 
-## Results
+
+```{r resultseconomic}
+
+summary_table(analysis_annual_events, "EVTYPE", c("event_property_damage","Property Damage ($’000)"), c("event_crop_damage","Crop Damage ($’000)"), sprintf("Top 10 Economic impacts %d - 2011", start_year))
+              
+```
+
+### Distribution of effects across the United States
+
+```{r resultsstates}
+summary_table(analysis_annual_states, "STATE", c("event_fatalities","Fatalities"), c("event_injuries","Injuries"), sprintf("Top 10 Public Health impacts %d - 2011", start_year))
+
+
+summary_table(analysis_annual_states, "STATE", c("event_property_damage","Property Damage ($’000)"), c("event_crop_damage","Crop Damage ($’000)"), sprintf("Top 10 states with the greated Economic impacts %d - 2011", start_year))
+              
+```
+
+
+### Events carrying the largest annual risk
+
 
 ```{r graphs}
 lowest_percent=0.01
 
-event_summary <-  analysis_events %>% group_by(EVTYPE) %>%
+event_summary <-  analysis_annual_events %>% group_by(EVTYPE) %>%
                  summarise(number_of_events = sum(number_of_events),
                            event_injuries = sum(event_injuries),
                            event_fatalities = sum(event_fatalities),

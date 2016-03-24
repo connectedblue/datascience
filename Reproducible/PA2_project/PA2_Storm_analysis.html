@@ -196,17 +196,19 @@ events$propdmg_k&lt;-events$PROPDMG * as.numeric(as.character(events$PROPDMGEXP)
 <pre class="r"><code># Helper function
 divide &lt;- function(a,b) ifelse(b==0,0,a/b)
 
-annual_events &lt;- events %&gt;% group_by(year) %&gt;% 
+group_events &lt;- function(grp) {
+                events %&gt;% group_by(year) %&gt;% 
                             mutate(total_annual_events = n(),
                                    total_annual_injuries = sum(INJURIES),
                                    total_annual_fatalities = sum(FATALITIES),
                                    total_annual_property_damage = sum(propdmg_k),
                                    total_annual_crop_damage = sum(cropdmg_k)) %&gt;% 
-                            group_by(year, EVTYPE, total_annual_events,
-                                                   total_annual_injuries,
-                                                   total_annual_fatalities,
-                                                   total_annual_property_damage,
-                                                   total_annual_crop_damage)  %&gt;%
+                            group_by_(.dots=c(&quot;year&quot;, sprintf(&quot;%s&quot;,grp),
+                                              &quot;total_annual_events&quot;,
+                                              &quot;total_annual_injuries&quot;, 
+                                              &quot;total_annual_fatalities&quot;,
+                                              &quot;total_annual_property_damage&quot;, 
+                                              &quot;total_annual_crop_damage&quot; ))  %&gt;%
                             summarise(number_of_events = n(),
                                    event_injuries = sum(INJURIES),
                                    event_fatalities = sum(FATALITIES),
@@ -215,9 +217,14 @@ annual_events &lt;- events %&gt;% group_by(year) %&gt;%
                              mutate(event_injury_percent = divide(event_injuries, total_annual_injuries),
                                     event_fatality_percent = divide(event_fatalities,total_annual_fatalities),
                                     event_property_damage_percent = divide(event_property_damage,total_annual_property_damage),
-                                    event_crop_damage_percent = divide(event_crop_damage,total_annual_crop_damage))</code></pre>
+                                    event_crop_damage_percent = divide(event_crop_damage,total_annual_crop_damage))
+}
+
+annual_events &lt;- group_events(&quot;EVTYPE&quot;)
+annual_states &lt;- group_events(&quot;STATE&quot;)</code></pre>
 <p>The dataset <strong>annual_events</strong> is the basis for the analysis</p>
-<pre class="r"><code>year_2001 &lt;- annual_events %&gt;% filter(year==2001) %&gt;% arrange(desc(event_fatalities))</code></pre>
+<hr />
+<p>Number of obsersavations 67136482 Number of Fatalities 1.44671610^{6} Number of obsersavations 0</p>
 <pre class="r"><code># Helper functions to summarise data frames which have a text column followed by 
 # numerical ones
 # crunch keeps specified rows in a data.frame and rolls up the others into a single
@@ -253,30 +260,19 @@ summary_table&lt;- function (df,grp_by, col_1, col_2, caption=&quot;&quot;, top=
               caption = caption,
               col.names = c(&quot;&quot;,&quot;&quot;, col_1[2], &quot;&quot;, col_2[2]))
         
-}
+}</code></pre>
+</div>
+</div>
+<div id="results" class="section level2">
+<h2>Results</h2>
+<pre class="r"><code>start_year &lt;- 2001
+analysis_annual_events &lt;- annual_events  %&gt;% filter(year&gt;start_year) 
+analysis_annual_states &lt;- annual_states  %&gt;% filter(year&gt;start_year) 
 
 
-start_year &lt;- 2001
-analysis_events &lt;- annual_events  %&gt;% filter(year&gt;start_year) 
-
-fatalities&lt;-sumcolumn(analysis_events, &quot;EVTYPE&quot;,&quot;event_fatalities&quot;)
-injuries&lt;-sumcolumn(analysis_events, &quot;EVTYPE&quot;,&quot;event_injuries&quot;)
-property&lt;-sumcolumn(analysis_events, &quot;EVTYPE&quot;,&quot;event_property_damage&quot;)
-crops&lt;-sumcolumn(analysis_events, &quot;EVTYPE&quot;,&quot;event_crop_damage&quot;)
-
-
-top_ten_impacts &lt;- cbind(data.frame(n=c(1:10,&quot;&quot;,&quot;&quot;)),
-                         totalcrunch(fatalities, 1:10, &quot;(OTHERS)&quot;),
-                         totalcrunch(injuries , 1:10, &quot;(OTHERS)&quot;,&quot;&quot;),
-                         totalcrunch(property , 1:10, &quot;(OTHERS)&quot;,&quot;&quot;),
-                         totalcrunch(crops , 1:10, &quot;(OTHERS)&quot;,&quot;&quot;)
-                         )
-
-kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
-      caption = sprintf(&quot;Top 10 Public Health and economic impacts %d - 2011&quot;, start_year),
-      col.names = c(&quot;&quot;,&quot;&quot;, &quot;Fatalities&quot;, &quot;&quot;, &quot;Injuries&quot;, &quot;&quot;,&quot;Property Damage ($'000)&quot;,&quot;&quot;, &quot;Crop Damage ($'000)&quot;))</code></pre>
+summary_table(analysis_annual_events, &quot;EVTYPE&quot;, c(&quot;event_fatalities&quot;,&quot;Fatalities&quot;), c(&quot;event_injuries&quot;,&quot;Injuries&quot;), sprintf(&quot;Top 10 Public Health impacts %d - 2011&quot;, start_year))</code></pre>
 <table>
-<caption>Top 10 Public Health and economic impacts 2001 - 2011</caption>
+<caption>Top 10 Public Health impacts 2001 - 2011</caption>
 <thead>
 <tr class="header">
 <th align="left"></th>
@@ -284,10 +280,6 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 <th align="right">Fatalities</th>
 <th align="left"></th>
 <th align="right">Injuries</th>
-<th align="left"></th>
-<th align="right">Property Damage ($’000)</th>
-<th align="left"></th>
-<th align="right">Crop Damage ($’000)</th>
 </tr>
 </thead>
 <tbody>
@@ -297,10 +289,6 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 <td align="right">1,112</td>
 <td align="left">TORNADO</td>
 <td align="right">13,588</td>
-<td align="left">FLOOD</td>
-<td align="right">144,097,051</td>
-<td align="left">DROUGHT</td>
-<td align="right">5,423,625</td>
 </tr>
 <tr class="even">
 <td align="left">2</td>
@@ -308,10 +296,6 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 <td align="right">920</td>
 <td align="left">HEAT</td>
 <td align="right">4,019</td>
-<td align="left">HURRICANE</td>
-<td align="right">72,342,695</td>
-<td align="left">FLOOD</td>
-<td align="right">4,404,421</td>
 </tr>
 <tr class="odd">
 <td align="left">3</td>
@@ -319,10 +303,6 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 <td align="right">786</td>
 <td align="left">THUNDERSTORM</td>
 <td align="right">2,546</td>
-<td align="left">STORM SURGE</td>
-<td align="right">47,809,503</td>
-<td align="left">HURRICANE</td>
-<td align="right">3,056,383</td>
 </tr>
 <tr class="even">
 <td align="left">4</td>
@@ -330,10 +310,6 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 <td align="right">384</td>
 <td align="left">LIGHTNING</td>
 <td align="right">2,250</td>
-<td align="left">TORNADO</td>
-<td align="right">18,406,923</td>
-<td align="left">HAIL</td>
-<td align="right">1,393,288</td>
 </tr>
 <tr class="odd">
 <td align="left">5</td>
@@ -341,10 +317,6 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 <td align="right">370</td>
 <td align="left">HURRICANE</td>
 <td align="right">1,291</td>
-<td align="left">HAIL</td>
-<td align="right">9,174,278</td>
-<td align="left">FREEZE</td>
-<td align="right">1,094,086</td>
 </tr>
 <tr class="even">
 <td align="left">6</td>
@@ -352,10 +324,6 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 <td align="right">233</td>
 <td align="left">WILDFIRE</td>
 <td align="right">1,051</td>
-<td align="left">THUNDERSTORM</td>
-<td align="right">4,976,962</td>
-<td align="left">THUNDERSTORM</td>
-<td align="right">577,897</td>
 </tr>
 <tr class="odd">
 <td align="left">7</td>
@@ -363,10 +331,6 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 <td align="right">207</td>
 <td align="left">FLOOD</td>
 <td align="right">818</td>
-<td align="left">WILDFIRE</td>
-<td align="right">4,959,547</td>
-<td align="left">HIGH WIND</td>
-<td align="right">494,272</td>
 </tr>
 <tr class="even">
 <td align="left">8</td>
@@ -374,10 +338,6 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 <td align="right">145</td>
 <td align="left">HIGH WIND</td>
 <td align="right">486</td>
-<td align="left">HIGH WIND</td>
-<td align="right">4,833,336</td>
-<td align="left">HEAT</td>
-<td align="right">492,578</td>
 </tr>
 <tr class="odd">
 <td align="left">9</td>
@@ -385,10 +345,6 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 <td align="right">118</td>
 <td align="left">HAIL</td>
 <td align="right">456</td>
-<td align="left">TROPICAL STORM</td>
-<td align="right">2,008,361</td>
-<td align="left">TROPICAL STORM</td>
-<td align="right">410,061</td>
 </tr>
 <tr class="even">
 <td align="left">10</td>
@@ -396,6 +352,101 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 <td align="right">97</td>
 <td align="left">WINTER WEATHER</td>
 <td align="right">343</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">(OTHERS)</td>
+<td align="right">676</td>
+<td align="left">(OTHERS)</td>
+<td align="right">2,761</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">GRAND TOTAL</td>
+<td align="right">5,048</td>
+<td align="left"></td>
+<td align="right">29,609</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>summary_table(analysis_annual_events, &quot;EVTYPE&quot;, c(&quot;event_property_damage&quot;,&quot;Property Damage ($’000)&quot;), c(&quot;event_crop_damage&quot;,&quot;Crop Damage ($’000)&quot;), sprintf(&quot;Top 10 Economic impacts %d - 2011&quot;, start_year))</code></pre>
+<table>
+<caption>Top 10 Economic impacts 2001 - 2011</caption>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left"></th>
+<th align="right">Property Damage ($000)</th>
+<th align="left"></th>
+<th align="right">Crop Damage ($000)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">1</td>
+<td align="left">FLOOD</td>
+<td align="right">144,097,051</td>
+<td align="left">DROUGHT</td>
+<td align="right">5,423,625</td>
+</tr>
+<tr class="even">
+<td align="left">2</td>
+<td align="left">HURRICANE</td>
+<td align="right">72,342,695</td>
+<td align="left">FLOOD</td>
+<td align="right">4,404,421</td>
+</tr>
+<tr class="odd">
+<td align="left">3</td>
+<td align="left">STORM SURGE</td>
+<td align="right">47,809,503</td>
+<td align="left">HURRICANE</td>
+<td align="right">3,056,383</td>
+</tr>
+<tr class="even">
+<td align="left">4</td>
+<td align="left">TORNADO</td>
+<td align="right">18,406,923</td>
+<td align="left">HAIL</td>
+<td align="right">1,393,288</td>
+</tr>
+<tr class="odd">
+<td align="left">5</td>
+<td align="left">HAIL</td>
+<td align="right">9,174,278</td>
+<td align="left">FREEZE</td>
+<td align="right">1,094,086</td>
+</tr>
+<tr class="even">
+<td align="left">6</td>
+<td align="left">THUNDERSTORM</td>
+<td align="right">4,976,962</td>
+<td align="left">THUNDERSTORM</td>
+<td align="right">577,897</td>
+</tr>
+<tr class="odd">
+<td align="left">7</td>
+<td align="left">WILDFIRE</td>
+<td align="right">4,959,547</td>
+<td align="left">HIGH WIND</td>
+<td align="right">494,272</td>
+</tr>
+<tr class="even">
+<td align="left">8</td>
+<td align="left">HIGH WIND</td>
+<td align="right">4,833,336</td>
+<td align="left">HEAT</td>
+<td align="right">492,578</td>
+</tr>
+<tr class="odd">
+<td align="left">9</td>
+<td align="left">TROPICAL STORM</td>
+<td align="right">2,008,361</td>
+<td align="left">TROPICAL STORM</td>
+<td align="right">410,061</td>
+</tr>
+<tr class="even">
+<td align="left">10</td>
 <td align="left">ICE STORM</td>
 <td align="right">1,964,718</td>
 <td align="left">HEAVY RAIN</td>
@@ -404,10 +455,6 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 <tr class="odd">
 <td align="left"></td>
 <td align="left">(OTHERS)</td>
-<td align="right">676</td>
-<td align="left">(OTHERS)</td>
-<td align="right">2,761</td>
-<td align="left">(OTHERS)</td>
 <td align="right">4,575,873</td>
 <td align="left">(OTHERS)</td>
 <td align="right">722,594</td>
@@ -415,19 +462,15 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 <tr class="even">
 <td align="left"></td>
 <td align="left">GRAND TOTAL</td>
-<td align="right">5,048</td>
-<td align="left"></td>
-<td align="right">29,609</td>
-<td align="left"></td>
 <td align="right">315,149,246</td>
 <td align="left"></td>
 <td align="right">18,450,250</td>
 </tr>
 </tbody>
 </table>
-<pre class="r"><code>summary_table(analysis_events, &quot;EVTYPE&quot;, c(&quot;event_fatalities&quot;,&quot;Fatalities&quot;), c(&quot;event_property_damage&quot;,&quot;Injuries&quot;), sprintf(&quot;Top 10 Public Health and economic impacts %d - 2011&quot;, start_year))</code></pre>
+<pre class="r"><code>summary_table(analysis_annual_states, &quot;STATE&quot;, c(&quot;event_fatalities&quot;,&quot;Fatalities&quot;), c(&quot;event_injuries&quot;,&quot;Injuries&quot;), sprintf(&quot;Top 10 Public Health impacts %d - 2011&quot;, start_year))</code></pre>
 <table>
-<caption>Top 10 Public Health and economic impacts 2001 - 2011</caption>
+<caption>Top 10 Public Health impacts 2001 - 2011</caption>
 <thead>
 <tr class="header">
 <th align="left"></th>
@@ -440,97 +483,192 @@ kable(top_ten_impacts, digits=0, format.args=list(big.mark = ','),
 <tbody>
 <tr class="odd">
 <td align="left">1</td>
-<td align="left">TORNADO</td>
-<td align="right">1,112</td>
-<td align="left">FLOOD</td>
-<td align="right">144,097,051</td>
+<td align="left">MO</td>
+<td align="right">356</td>
+<td align="left">MO</td>
+<td align="right">4,507</td>
 </tr>
 <tr class="even">
 <td align="left">2</td>
-<td align="left">HEAT</td>
-<td align="right">920</td>
-<td align="left">HURRICANE</td>
-<td align="right">72,342,695</td>
+<td align="left">TX</td>
+<td align="right">349</td>
+<td align="left">AL</td>
+<td align="right">2,815</td>
 </tr>
 <tr class="odd">
 <td align="left">3</td>
-<td align="left">FLOOD</td>
-<td align="right">786</td>
-<td align="left">STORM SURGE</td>
-<td align="right">47,809,503</td>
+<td align="left">FL</td>
+<td align="right">339</td>
+<td align="left">TN</td>
+<td align="right">1,804</td>
 </tr>
 <tr class="even">
 <td align="left">4</td>
-<td align="left">RIP CURRENT</td>
-<td align="right">384</td>
-<td align="left">TORNADO</td>
-<td align="right">18,406,923</td>
+<td align="left">AL</td>
+<td align="right">334</td>
+<td align="left">TX</td>
+<td align="right">1,732</td>
 </tr>
 <tr class="odd">
 <td align="left">5</td>
-<td align="left">LIGHTNING</td>
-<td align="right">370</td>
-<td align="left">HAIL</td>
-<td align="right">9,174,278</td>
+<td align="left">IL</td>
+<td align="right">300</td>
+<td align="left">FL</td>
+<td align="right">1,667</td>
 </tr>
 <tr class="even">
 <td align="left">6</td>
-<td align="left">COLD</td>
-<td align="right">233</td>
-<td align="left">THUNDERSTORM</td>
-<td align="right">4,976,962</td>
+<td align="left">CA</td>
+<td align="right">296</td>
+<td align="left">CA</td>
+<td align="right">1,496</td>
 </tr>
 <tr class="odd">
 <td align="left">7</td>
-<td align="left">THUNDERSTORM</td>
-<td align="right">207</td>
-<td align="left">WILDFIRE</td>
-<td align="right">4,959,547</td>
+<td align="left">TN</td>
+<td align="right">271</td>
+<td align="left">OK</td>
+<td align="right">1,483</td>
 </tr>
 <tr class="even">
 <td align="left">8</td>
-<td align="left">AVALANCHE</td>
-<td align="right">145</td>
-<td align="left">HIGH WIND</td>
-<td align="right">4,833,336</td>
+<td align="left">PA</td>
+<td align="right">230</td>
+<td align="left">GA</td>
+<td align="right">864</td>
 </tr>
 <tr class="odd">
 <td align="left">9</td>
-<td align="left">HIGH SURF</td>
-<td align="right">118</td>
-<td align="left">TROPICAL STORM</td>
-<td align="right">2,008,361</td>
+<td align="left">NY</td>
+<td align="right">154</td>
+<td align="left">NC</td>
+<td align="right">822</td>
 </tr>
 <tr class="even">
 <td align="left">10</td>
-<td align="left">HIGH WIND</td>
-<td align="right">97</td>
-<td align="left">ICE STORM</td>
-<td align="right">1,964,718</td>
+<td align="left">NC</td>
+<td align="right">153</td>
+<td align="left">MS</td>
+<td align="right">770</td>
 </tr>
 <tr class="odd">
 <td align="left"></td>
 <td align="left">(OTHERS)</td>
-<td align="right">676</td>
+<td align="right">2,266</td>
 <td align="left">(OTHERS)</td>
-<td align="right">4,575,873</td>
+<td align="right">11,649</td>
 </tr>
 <tr class="even">
 <td align="left"></td>
 <td align="left">GRAND TOTAL</td>
 <td align="right">5,048</td>
 <td align="left"></td>
-<td align="right">315,149,246</td>
+<td align="right">29,609</td>
 </tr>
 </tbody>
 </table>
-</div>
-</div>
-<div id="results" class="section level2">
-<h2>Results</h2>
+<pre class="r"><code>summary_table(analysis_annual_states, &quot;STATE&quot;, c(&quot;event_property_damage&quot;,&quot;Property Damage ($’000)&quot;), c(&quot;event_crop_damage&quot;,&quot;Crop Damage ($’000)&quot;), sprintf(&quot;Top 10 states with the greated Economic impacts %d - 2011&quot;, start_year))</code></pre>
+<table>
+<caption>Top 10 states with the greated Economic impacts 2001 - 2011</caption>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left"></th>
+<th align="right">Property Damage ($000)</th>
+<th align="left"></th>
+<th align="right">Crop Damage ($000)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">1</td>
+<td align="left">CA</td>
+<td align="right">120,405,066</td>
+<td align="left">TX</td>
+<td align="right">3,815,721</td>
+</tr>
+<tr class="even">
+<td align="left">2</td>
+<td align="left">LA</td>
+<td align="right">55,893,867</td>
+<td align="left">IA</td>
+<td align="right">2,373,061</td>
+</tr>
+<tr class="odd">
+<td align="left">3</td>
+<td align="left">FL</td>
+<td align="right">32,324,672</td>
+<td align="left">FL</td>
+<td align="right">1,875,484</td>
+</tr>
+<tr class="even">
+<td align="left">4</td>
+<td align="left">MS</td>
+<td align="right">27,724,828</td>
+<td align="left">MS</td>
+<td align="right">1,606,258</td>
+</tr>
+<tr class="odd">
+<td align="left">5</td>
+<td align="left">TX</td>
+<td align="right">12,640,716</td>
+<td align="left">CA</td>
+<td align="right">1,331,982</td>
+</tr>
+<tr class="even">
+<td align="left">6</td>
+<td align="left">AL</td>
+<td align="right">9,640,224</td>
+<td align="left">NE</td>
+<td align="right">917,765</td>
+</tr>
+<tr class="odd">
+<td align="left">7</td>
+<td align="left">TN</td>
+<td align="right">5,581,115</td>
+<td align="left">IN</td>
+<td align="right">864,633</td>
+</tr>
+<tr class="even">
+<td align="left">8</td>
+<td align="left">MO</td>
+<td align="right">4,347,497</td>
+<td align="left">MO</td>
+<td align="right">713,182</td>
+</tr>
+<tr class="odd">
+<td align="left">9</td>
+<td align="left">OH</td>
+<td align="right">4,182,533</td>
+<td align="left">WI</td>
+<td align="right">680,509</td>
+</tr>
+<tr class="even">
+<td align="left">10</td>
+<td align="left">AZ</td>
+<td align="right">3,429,562</td>
+<td align="left">LA</td>
+<td align="right">572,331</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">(OTHERS)</td>
+<td align="right">38,979,167</td>
+<td align="left">(OTHERS)</td>
+<td align="right">3,699,324</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">GRAND TOTAL</td>
+<td align="right">315,149,246</td>
+<td align="left"></td>
+<td align="right">18,450,250</td>
+</tr>
+</tbody>
+</table>
 <pre class="r"><code>lowest_percent=0.01
 
-event_summary &lt;-  analysis_events %&gt;% group_by(EVTYPE) %&gt;%
+event_summary &lt;-  analysis_annual_events %&gt;% group_by(EVTYPE) %&gt;%
                  summarise(number_of_events = sum(number_of_events),
                            event_injuries = sum(event_injuries),
                            event_fatalities = sum(event_fatalities),
