@@ -14,6 +14,7 @@ library(dplyr)
 library(ggplot2)
 library(scales)
 library(knitr)
+library(htmlTable)
 ```
 
 ## Synopsis
@@ -150,15 +151,31 @@ group_events <- function(grp) {
 annual_events <- group_events("EVTYPE")
 annual_states <- group_events("STATE")
 
+analytic_summary <- data.frame( c("Number of observations", "Number of Fatalities", 
+                               "Number of Injuries", 
+                               "Total Property damage (&dollar;'000)",
+                               "Total Crop damage (&dollar;'000)"),
+                             c(sum(annual_events$number_of_events),
+                               sum(annual_events$event_fatalities),
+                               sum(annual_events$event_injuries),
+                               sum(annual_events$event_property_damage),
+                               sum(annual_events$event_crop_damage)))
+
+analytic_summary <- as.data.frame(sapply(analytic_summary, format, digits=0, big.mark = ',', scientific=999, trim=TRUE   ))
+
+options(table_counter=TRUE)
+htmlTable(analytic_summary, rnames=FALSE, header=c("",""), align="lr",
+          caption = "Summary of full analytic data set", css.table="width:80%;  margin-left:10%; 
+    margin-right:10%;",col.rgroup = c("none", "#F7F7F7"))
+                             
+
+
 
 ```
 
 The dataset **annual_events** is the basis for the analysis
 
 ---------------------------     -----------------------------------------------
-Number of obsersavations        `r sum(annual_events$total_annual_events)`
-Number of Fatalities            `r sum(annual_events$total_annual_fatalities)`
-Number of obsersavations        `r sum(annual_events$total_annualinjuries)`
 
 
 
@@ -174,7 +191,7 @@ crunch <- function(df,rowstokeep, rolleduptext,rowstosum=-(rowstokeep)) {
 }
 # totalcrunch calls crunch twice - first to crunch the data frame and again to add
 # a grand total row
-totalcrunch <- function(df, rowstokeep, rolleduptext, totaltext="GRAND TOTAL"){
+totalcrunch <- function(df, rowstokeep, rolleduptext, totaltext="TOTAL"){
         crunch(crunch(df, rowstokeep, rolleduptext), 1:(length(rowstokeep)+1), 
                           totaltext, 1:(length(rowstokeep)+1))
 }
@@ -186,19 +203,48 @@ sumcolumn <- function(df, grouping_col, sum_col){
                 arrange_(sprintf("desc(%s)",sum_col))
 }
 
-summary_table<- function (df,grp_by, col_1, col_2, caption="", top=10){
+summary_table_twocol<- function (df,grp_by, col_1, col_2, caption="", top=10){
         lhs <- sumcolumn(df, grp_by,col_1[1])
         rhs <- sumcolumn(df, grp_by,col_2[1])
         top_impacts <- cbind(data.frame(n=c(1:top,"","")),
-                                 totalcrunch(lhs, 1:top, "(OTHERS)"),
-                                 totalcrunch(rhs , 1:top, "(OTHERS)","")
+                                 totalcrunch(lhs, 1:top, "(OTHER)"),
+                                 totalcrunch(rhs , 1:top, "(OTHER)","&nbsp;")
                                  )
+        top_impacts <- sapply(top_impacts, format, digits=0, big.mark = ',', scientific=999 )
+        
+        htmlTable(top_impacts, rnames=FALSE, header=c("","","","",""), align="llrlr",
+          cgroup = c("",col_1[2], col_2[2]), caption = caption,
+          n.cgroup = c(1,2,2), total = TRUE, css.table="width:80%;  margin-left:10%; 
+    margin-right:10%;",col.rgroup = c("none", "#F7F7F7"))
+        
+}
+
+summary_table_fourcol<- function (df,grp_by, col_1, col_2, col_3, col_4,caption="",
+                                  top=10){
+        c1 <- sumcolumn(df, grp_by,col_1[1])
+        c2 <- sumcolumn(df, grp_by,col_2[1])
+        c3 <- sumcolumn(df, grp_by,col_3[1])
+        c4 <- sumcolumn(df, grp_by,col_4[1])
+        top_impacts <- cbind(data.frame(n=c(1:top,"","")),
+                                 totalcrunch(c1, 1:top, "(OTHER)"),
+                                 totalcrunch(c2 , 1:top, "(OTHER)","&nbsp;"),
+                                 totalcrunch(c3 , 1:top, "(OTHER)","&nbsp;"),
+                                 totalcrunch(c4 , 1:top, "(OTHER)","&nbsp;")
+                                 )
+        
+        top_impacts <- sapply(top_impacts, format, digits=0, big.mark = ',', scientific=999 )
         
         kable(top_impacts, digits=0, format.args=list(big.mark = ','),
               caption = caption,
-              col.names = c("","", col_1[2], "", col_2[2]))
+              col.names = c("","", col_1[2], "", col_2[2], "", col_3[2], "", col_4[2]))
+        
+        htmlTable(top_impacts, rnames=FALSE, header=c("","","","","","","","",""), align="llrlrlrlr",
+          cgroup = c("",col_1[2], col_2[2], col_3[2], col_4[2]), caption = caption,
+          n.cgroup = c(1,2,2,2,2), total = TRUE, css.table="width:80%;  margin-left:10%; 
+    margin-right:10%;",col.rgroup = c("none", "#F7F7F7"))
         
 }
+
 
 ```
 
@@ -212,25 +258,25 @@ start_year <- 2001
 analysis_annual_events <- annual_events  %>% filter(year>start_year) 
 analysis_annual_states <- annual_states  %>% filter(year>start_year) 
 
+        
 
-summary_table(analysis_annual_events, "EVTYPE", c("event_fatalities","Fatalities"), c("event_injuries","Injuries"), sprintf("Top 10 Public Health impacts %d - 2011", start_year))
+summary_table_twocol(analysis_annual_events, "EVTYPE", c("event_fatalities","Fatalities"), c("event_injuries","Injuries"), sprintf("Top 10 Public Health impacts %d - 2011", start_year))
               
 ```
 
 
 ```{r resultseconomic}
 
-summary_table(analysis_annual_events, "EVTYPE", c("event_property_damage","Property Damage ($’000)"), c("event_crop_damage","Crop Damage ($’000)"), sprintf("Top 10 Economic impacts %d - 2011", start_year))
+summary_table_twocol(analysis_annual_events, "EVTYPE", c("event_property_damage","Property Damage (&dollar;’000)"), c("event_crop_damage","Crop Damage (&dollar;’000)"), sprintf("Top 10 Economic impacts %d - 2011", start_year))
               
 ```
 
 ### Distribution of effects across the United States
 
 ```{r resultsstates}
-summary_table(analysis_annual_states, "STATE", c("event_fatalities","Fatalities"), c("event_injuries","Injuries"), sprintf("Top 10 Public Health impacts %d - 2011", start_year))
+summary_table_fourcol(analysis_annual_states, "STATE", c("event_fatalities","Fatalities"), c("event_injuries","Injuries"), c("event_property_damage","Property Damage (&dollar;’000)"), c("event_crop_damage","Crop Damage (&dollar;’000)"), sprintf("Top 10 impacted states %d - 2011", start_year))
 
 
-summary_table(analysis_annual_states, "STATE", c("event_property_damage","Property Damage ($’000)"), c("event_crop_damage","Crop Damage ($’000)"), sprintf("Top 10 states with the greated Economic impacts %d - 2011", start_year))
               
 ```
 
