@@ -19,6 +19,11 @@ library(htmlTable)
 
 ## Synopsis
 
+Historical weather data from across the United States is analysed to understand the impact of severe events on population health and the economy.  The period covered is 2001 to 2011 in order to give a comprehensive analysis of recent annual events.
+
+There were 5,048 deaths and 29,609 fatalities across the United States over that time. Over 80% of these can be attributed to just 10 types of events, with the Tornado top of the list.  At the state level, Missouri suffered the largest health impact across all weather events.
+
+There was around $315bn of property damage and $18bn of crop damage also during that period.  Flood was the largest contributor to property damage, while drought being the largest cause of damage to crops.  California and Texas suffered the greatest ecomonic impact to property and crops respectively.
 
 ## Introduction
 
@@ -37,7 +42,7 @@ A number of steps are required to prepare the data before analysis which are des
 
 ### Acquiring the data
 
-The raw data was provided as an internet url.  The dataset is rather large, so is only downloaded if it doesn't already exist:  
+The raw data was provided as an internet url.  The dataset is rather large, and downloaded for further analysis.
 
 ```{r acquiredata, cache=TRUE}
 rawdata_url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
@@ -51,7 +56,9 @@ if(!file.exists(rawdata_file)) {
 storm_data <- read.csv(rawdata_csv)
 ```
 
-The raw data contains `r format(dim(storm_data)[1], big.mark=",")` weather observations and `r dim(storm_data)[2]` variables for each observation.
+The raw data contains `r format(dim(storm_data)[1], big.mark=",")` weather observations and `r dim(storm_data)[2]` variables for each observation. The total number of fatalities recorded in the raw data was `r format(sum(storm_data$FATALITIES) , big.mark=",")`, and the total number of injuries was `r format(sum(storm_data$INJURIES) , big.mark=",")`. 
+
+These totals will be used to cross check the analytic data set to ensure accuracy.
 
 The events in the database start in the year 1950 and end in November 2011. In the earlier years of the database there are generally fewer events recorded, most likely due to a lack of good records. More recent years are more complete.
 
