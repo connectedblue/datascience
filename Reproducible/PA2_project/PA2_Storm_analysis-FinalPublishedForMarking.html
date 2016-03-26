@@ -169,7 +169,8 @@ rawdata_csv &lt;- &quot;storm_data.csv&quot;
 
 if(!file.exists(rawdata_file)) {
         download.file(url = rawdata_url, destfile = rawdata_file)
-        bunzip2(filename = rawdata_file, destname = rawdata_csv)
+        bunzip2(filename = rawdata_file, destname = rawdata_csv, 
+                overwrite=TRUE, remove=FALSE)
 }
 storm_data &lt;- read.csv(rawdata_csv)</code></pre>
 <p>The raw data contains 902,297 weather observations and 37 variables for each observation. The total number of fatalities recorded in the raw data was 15,145, and the total number of injuries was 140,528.</p>
@@ -213,8 +214,7 @@ events$propdmg_k&lt;-events$PROPDMG * as.numeric(as.character(events$PROPDMGEXP)
                                         &quot;HEAT WAVE&quot;=&quot;HEAT&quot;, &quot;River Flooding&quot;=&quot;FLOOD&quot;,
                                         &quot;EXCESSIVE HEAT&quot;=&quot;HEAT&quot;, &quot;FROST/FREEZE&quot;=&quot;FREEZE&quot;,
                                         &quot;COLD/WIND CHILL&quot;=&quot;COLD&quot;, &quot;EXTREME COLD&quot;=&quot;COLD&quot;,
-                                        &quot;HEAVY SURF/HIGH SURF&quot;=&quot;HIGH SURF&quot;))
-#detach(&quot;package:plyr&quot;, unload=TRUE)</code></pre>
+                                        &quot;HEAVY SURF/HIGH SURF&quot;=&quot;HIGH SURF&quot;))</code></pre>
 </div>
 <div id="creating-an-analytic-dataset" class="section level3">
 <h3>Creating an analytic dataset</h3>
@@ -405,7 +405,10 @@ analysis_annual_states &lt;- annual_states  %&gt;% filter(year&gt;start_year) </
 <div id="weather-events-with-the-greatest-economic-and-health-impacts" class="section level3">
 <h3>Weather events with the greatest economic and health impacts</h3>
 <p>Table 2 shows the ten most severe weather events which caused the highest number of fatalities and injuries during the period.</p>
-<pre class="r"><code>summary_table_twocol(analysis_annual_events, &quot;EVTYPE&quot;, c(&quot;event_fatalities&quot;,&quot;Fatalities&quot;), c(&quot;event_injuries&quot;,&quot;Injuries&quot;), sprintf(&quot;Top 10 Public Health impacts %d - 2011&quot;, start_year))</code></pre>
+<pre class="r"><code>summary_table_twocol(analysis_annual_events, &quot;EVTYPE&quot;, 
+                     c(&quot;event_fatalities&quot;,&quot;Fatalities&quot;),
+                     c(&quot;event_injuries&quot;,&quot;Injuries&quot;),
+                     sprintf(&quot;Top 10 Public Health impacts %d - 2011&quot;, start_year))</code></pre>
 <table class="gmisc_table" style="border-collapse: collapse; width:80%;  margin-left:10%; 
     margin-right:10%;" id="table_2">
 <thead>
@@ -728,7 +731,10 @@ TOTAL
 </table>
 <p>Clearly tornadoes and heat are the number one and two main impacts. Thereafter events have different effects, for example thunderstorms are further down the list of fatalities, although responsible for the third largest number of injuries.</p>
 <p>The next area to consider is economic damage of severe weather, captured in terms of property damage and crop damage.</p>
-<pre class="r"><code>summary_table_twocol(analysis_annual_events, &quot;EVTYPE&quot;, c(&quot;event_property_damage&quot;,&quot;Property Damage (&amp;dollar;’000)&quot;), c(&quot;event_crop_damage&quot;,&quot;Crop Damage (&amp;dollar;’000)&quot;), sprintf(&quot;Top 10 Economic impacts %d - 2011&quot;, start_year))</code></pre>
+<pre class="r"><code>summary_table_twocol(analysis_annual_events, &quot;EVTYPE&quot;, 
+                     c(&quot;event_property_damage&quot;,&quot;Property Damage (&amp;dollar;’000)&quot;),
+                     c(&quot;event_crop_damage&quot;,&quot;Crop Damage (&amp;dollar;’000)&quot;),
+                     sprintf(&quot;Top 10 Economic impacts %d - 2011&quot;, start_year))</code></pre>
 <table class="gmisc_table" style="border-collapse: collapse; width:80%;  margin-left:10%; 
     margin-right:10%;" id="table_3">
 <thead>
@@ -1054,7 +1060,13 @@ TOTAL
 <div id="distribution-of-effects-across-the-united-states" class="section level3">
 <h3>Distribution of effects across the United States</h3>
 <p>There are regional differences in the effect of weather across the United States. The states who reported the ten highest indicators across fatalities, injuries, property damage and crop damage are captured in the following table.</p>
-<pre class="r"><code>summary_table_fourcol(analysis_annual_states, &quot;STATE&quot;, c(&quot;event_fatalities&quot;,&quot;Fatalities&quot;), c(&quot;event_injuries&quot;,&quot;Injuries&quot;), c(&quot;event_property_damage&quot;,&quot;Property Damage (&amp;dollar;’000)&quot;), c(&quot;event_crop_damage&quot;,&quot;Crop Damage (&amp;dollar;’000)&quot;), sprintf(&quot;Top 10 impacted states %d - 2011&quot;, start_year), other=&quot;other states&quot;)</code></pre>
+<pre class="r"><code>summary_table_fourcol(analysis_annual_states, &quot;STATE&quot;, 
+                      c(&quot;event_fatalities&quot;,&quot;Fatalities&quot;), 
+                      c(&quot;event_injuries&quot;,&quot;Injuries&quot;), 
+                      c(&quot;event_property_damage&quot;,&quot;Property Damage (&amp;dollar;’000)&quot;),
+                      c(&quot;event_crop_damage&quot;,&quot;Crop Damage (&amp;dollar;’000)&quot;), 
+                      sprintf(&quot;Top 10 impacted states %d - 2011&quot;, start_year),
+                      other=&quot;other states&quot;)</code></pre>
 <table class="gmisc_table" style="border-collapse: collapse; width:80%;  margin-left:10%; 
     margin-right:10%;" id="table_4">
 <thead>

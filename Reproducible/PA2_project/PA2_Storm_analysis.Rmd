@@ -55,7 +55,8 @@ rawdata_csv <- "storm_data.csv"
 
 if(!file.exists(rawdata_file)) {
         download.file(url = rawdata_url, destfile = rawdata_file)
-        bunzip2(filename = rawdata_file, destname = rawdata_csv)
+        bunzip2(filename = rawdata_file, destname = rawdata_csv, 
+                overwrite=TRUE, remove=FALSE)
 }
 storm_data <- read.csv(rawdata_csv)
 ```
