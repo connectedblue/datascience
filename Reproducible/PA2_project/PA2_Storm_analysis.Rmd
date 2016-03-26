@@ -2,20 +2,10 @@
 title: "Analysis of the NOAA Storm Database and Severe Weather events"
 author: "Chris Shaw"
 date: "14 March 2016"
-output: html_document
+output: 
+        html_document:
+                toc: yes
 ---
-
-```{r setup, include=FALSE}
-# Load libraries needed for paper
-knitr::opts_chunk$set(echo = TRUE)
-library(R.utils)
-library(plyr)
-library(dplyr)
-library(ggplot2)
-library(scales)
-library(knitr)
-library(htmlTable)
-```
 
 ## Synopsis
 
@@ -42,6 +32,20 @@ A number of steps are required to prepare the data before analysis which are des
 
 ### Acquiring the data
 
+
+```{r setup, warning=FALSE, message=FALSE, echo=TRUE}
+# Load libraries needed for analysis
+library(R.utils)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(knitr)
+library(htmlTable)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
 The raw data was provided as an internet url.  The dataset is rather large, and downloaded for further analysis.
 
 ```{r acquiredata, cache=TRUE}
@@ -67,7 +71,6 @@ The events in the database start in the year 1950 and end in November 2011. In t
 The first task is to create a smaller dataset with only those items relevant to the analysis.  A new variable called **year** is created to assist with group of events by calender year later on.
 
 ```{r cleanupdata}
-#library(plyr)
 events<-storm_data %>% select(EVTYPE, BGN_DATE, FATALITIES, INJURIES, PROPDMG,
                               PROPDMGEXP, CROPDMG, CROPDMGEXP, STATE)
 events$BGN_DATE <- as.Date(events$BGN_DATE, "%m/%d/%Y %H:%M:%S")
@@ -97,7 +100,7 @@ events$propdmg_k<-events$PROPDMG * as.numeric(as.character(events$PROPDMGEXP))
 
 The second transformation is to relabel the names of some events.  During exploratory analysis it became clear that some types of similar events are labelled differently due to spelling mistakes and multiple categorisations.
 
-For the analysis in this report,a certain number of categories have been relabelled as shown below.  There are over 900 different event types, and only a few key ones have been selected that are material in this report.  For example, all the different types of flooding are categorised as Flood.
+For the analysis in this report, a certain number of categories have been relabelled as shown below.  There are over 900 different event types, and only a few key ones have been selected that are material for this analysis.  For example, all the different types of flooding are categorised as Flood.
 
 ```{r relabelevtype}
 events$EVTYPE<-revalue(events$EVTYPE, c("TSTM WIND"="THUNDERSTORM","FLASH FLOOD"="FLOOD",
@@ -114,23 +117,23 @@ events$EVTYPE<-revalue(events$EVTYPE, c("TSTM WIND"="THUNDERSTORM","FLASH FLOOD"
                                         "EXCESSIVE HEAT"="HEAT", "FROST/FREEZE"="FREEZE",
                                         "COLD/WIND CHILL"="COLD", "EXTREME COLD"="COLD",
                                         "HEAVY SURF/HIGH SURF"="HIGH SURF"))
-#detach("package:plyr", unload=TRUE)
 ```
 
 ### Creating an analytic dataset
 
-After cleaning and transforming the data,the last step is to summarise annually to be able to analyse the full public health and econmic effects.  
+After cleaning and transforming the data, the last step is to calculate annual percentage contributions of each health and economic effect, grouped by event type and state.  
 
-The total injuries, fatalities, property and crop damage is calculated per year across all recorded event types, and then the percentage contribution from each event type can be calculated for that year
+The total injuries, fatalities, property and crop damage is calculated per year across all recorded event types, and then the percentage contribution from each event type can be calculated for that year.  A similar calculation can be done by state.
 
-summaries per year.  The 
-* Create a summarised set of data by year and EVTYPE
+This allows an analysis for each year of which events have the greatest percentage risk of occuring, and also which states bear the brunt of the public health and economic impacts.
 
 ```{r processanalyticdata}
 
-# Helper function
+# Helper function for avoiding errors when calculating percentages
 divide <- function(a,b) ifelse(b==0,0,a/b)
 
+# Group the data by year and one other factor passed in as a variable grp
+# The group_by_ function allows for dynamic grouping variables to be specified 
 group_events <- function(grp) {
                 events %>% group_by(year) %>% 
                             mutate(total_annual_events = n(),
@@ -149,8 +152,10 @@ group_events <- function(grp) {
                                    event_fatalities = sum(FATALITIES),
                                    event_property_damage = sum(propdmg_k),
                                    event_crop_damage = sum(cropdmg_k)) %>%
-                             mutate(event_injury_percent = divide(event_injuries, total_annual_injuries),
-                                    event_fatality_percent = divide(event_fatalities,total_annual_fatalities),
+                             mutate(event_injury_percent = divide(event_injuries,
+                                                                  total_annual_injuries),
+                                    event_fatality_percent = divide(event_fatalities,
+                                                               total_annual_fatalities),
                                     event_property_damage_percent = divide(event_property_damage,total_annual_property_damage),
                                     event_crop_damage_percent = divide(event_crop_damage,total_annual_crop_damage))
 }
@@ -158,6 +163,7 @@ group_events <- function(grp) {
 annual_events <- group_events("EVTYPE")
 annual_states <- group_events("STATE")
 
+# Create a summary of the analytic data totals
 analytic_summary <- data.frame( c("Number of observations", "Number of Fatalities", 
                                "Number of Injuries", 
                                "Total Property damage (&dollar;'000)",
@@ -168,23 +174,18 @@ analytic_summary <- data.frame( c("Number of observations", "Number of Fatalitie
                                sum(annual_events$event_property_damage),
                                sum(annual_events$event_crop_damage)))
 
-analytic_summary <- as.data.frame(sapply(analytic_summary, format, digits=0, big.mark = ',', scientific=999, trim=TRUE   ))
-
+analytic_summary <- as.data.frame(sapply(analytic_summary, format, digits=0, 
+                                         big.mark = ',', scientific=999, trim=TRUE))
 options(table_counter=TRUE)
 htmlTable(analytic_summary, rnames=FALSE, header=c("",""), align="lr",
           caption = "Summary of full analytic data set", css.table="width:80%;  margin-left:10%; 
     margin-right:10%;",col.rgroup = c("none", "#F7F7F7"))
-                             
-
-
-
 ```
 
-The dataset **annual_events** is the basis for the analysis
 
----------------------------     -----------------------------------------------
+The data in table `r tblNoLast()` agrees with the totals calculated frm the raw data.  We can also see the full economic data after the data transformations.  Note that this table summarises the whole data set from 1950 to 2011.  Later analysis will restrict this period to more recent history. 
 
-
+To help with further analysis, a number of R functions were created to summarise the data into helpful categories.
 
 ```{r toptenimpacts}
 # Helper functions to summarise data frames which have a text column followed by 
@@ -210,86 +211,113 @@ sumcolumn <- function(df, grouping_col, sum_col){
                 arrange_(sprintf("desc(%s)",sum_col))
 }
 
-summary_table_twocol<- function (df,grp_by, col_1, col_2, caption="", top=10){
+summary_table_twocol<- function (df,grp_by, col_1, col_2, caption="", 
+                                 top=10, other="(OTHER)"){
         lhs <- sumcolumn(df, grp_by,col_1[1])
         rhs <- sumcolumn(df, grp_by,col_2[1])
         top_impacts <- cbind(data.frame(n=c(1:top,"","")),
-                                 totalcrunch(lhs, 1:top, "(OTHER)"),
-                                 totalcrunch(rhs , 1:top, "(OTHER)","&nbsp;")
+                                 totalcrunch(lhs, 1:top, other),
+                                 totalcrunch(rhs , 1:top, "&nbsp;","&nbsp;")
                                  )
-        top_impacts <- sapply(top_impacts, format, digits=0, big.mark = ',', scientific=999 )
+        top_impacts <- sapply(top_impacts, format, digits=0, 
+                              big.mark = ',', scientific=999, trim=TRUE )
         
         htmlTable(top_impacts, rnames=FALSE, header=c("","","","",""), align="llrlr",
           cgroup = c("",col_1[2], col_2[2]), caption = caption,
           n.cgroup = c(1,2,2), total = TRUE, css.table="width:80%;  margin-left:10%; 
     margin-right:10%;",col.rgroup = c("none", "#F7F7F7"))
-        
 }
 
 summary_table_fourcol<- function (df,grp_by, col_1, col_2, col_3, col_4,caption="",
-                                  top=10){
+                                  top=10, other="(OTHER)"){
         c1 <- sumcolumn(df, grp_by,col_1[1])
         c2 <- sumcolumn(df, grp_by,col_2[1])
         c3 <- sumcolumn(df, grp_by,col_3[1])
         c4 <- sumcolumn(df, grp_by,col_4[1])
         top_impacts <- cbind(data.frame(n=c(1:top,"","")),
-                                 totalcrunch(c1, 1:top, "(OTHER)"),
-                                 totalcrunch(c2 , 1:top, "(OTHER)","&nbsp;"),
-                                 totalcrunch(c3 , 1:top, "(OTHER)","&nbsp;"),
-                                 totalcrunch(c4 , 1:top, "(OTHER)","&nbsp;")
+                                 totalcrunch(c1, 1:top, other),
+                                 totalcrunch(c2 , 1:top, "&nbsp;","&nbsp;"),
+                                 totalcrunch(c3 , 1:top, "&nbsp;","&nbsp;"),
+                                 totalcrunch(c4 , 1:top, "&nbsp;","&nbsp;")
                                  )
         
-        top_impacts <- sapply(top_impacts, format, digits=0, big.mark = ',', scientific=999 )
-        
-        kable(top_impacts, digits=0, format.args=list(big.mark = ','),
-              caption = caption,
-              col.names = c("","", col_1[2], "", col_2[2], "", col_3[2], "", col_4[2]))
-        
+        top_impacts <- sapply(top_impacts, format, digits=0, 
+                              big.mark = ',', scientific=999, trim=TRUE)
+
         htmlTable(top_impacts, rnames=FALSE, header=c("","","","","","","","",""), align="llrlrlrlr",
           cgroup = c("",col_1[2], col_2[2], col_3[2], col_4[2]), caption = caption,
           n.cgroup = c(1,2,2,2,2), total = TRUE, css.table="width:80%;  margin-left:10%; 
     margin-right:10%;",col.rgroup = c("none", "#F7F7F7"))
-        
 }
-
-
 ```
 
 
 ## Results
 
-### Weather events with the greatest economic and health impacts
+There is one final assumption made which is the period over which to analyse the data.  The early data is incomplete so including it will distort the numbers disproportionally (e.g. Tornado data has been collected as far back as 1950, but it's hard to compare the effects to other things in that year).  
 
-```{r resultshealth}
+The government has requested this report to help with contingency planning today.  This report has therefore concentrated on the period from 2001 to 2011 to give the most complete analysis from recent history.
+
+```{r resultsfilter}
 start_year <- 2001
 analysis_annual_events <- annual_events  %>% filter(year>start_year) 
 analysis_annual_states <- annual_states  %>% filter(year>start_year) 
+```
 
+
+### Weather events with the greatest economic and health impacts
+
+Table `r tblNoNext()` shows the ten most severe weather events which caused the highest number of fatalities and injuries during the period.
         
+```{r resultshealth}
 
-summary_table_twocol(analysis_annual_events, "EVTYPE", c("event_fatalities","Fatalities"), c("event_injuries","Injuries"), sprintf("Top 10 Public Health impacts %d - 2011", start_year))
+summary_table_twocol(analysis_annual_events, "EVTYPE", 
+                     c("event_fatalities","Fatalities"),
+                     c("event_injuries","Injuries"),
+                     sprintf("Top 10 Public Health impacts %d - 2011", start_year))
               
 ```
 
+Clearly tornadoes and heat are the number one and two main impacts.  Thereafter events have different effects, for example thunderstorms are further down the list of fatalities, although responsible for the third largest number of injuries.
+
+The next area to consider is economic damage of severe weather, captured in terms of property damage and crop damage. 
 
 ```{r resultseconomic}
 
-summary_table_twocol(analysis_annual_events, "EVTYPE", c("event_property_damage","Property Damage (&dollar;’000)"), c("event_crop_damage","Crop Damage (&dollar;’000)"), sprintf("Top 10 Economic impacts %d - 2011", start_year))
-              
+summary_table_twocol(analysis_annual_events, "EVTYPE", 
+                     c("event_property_damage","Property Damage (&dollar;’000)"),
+                     c("event_crop_damage","Crop Damage (&dollar;’000)"),
+                     sprintf("Top 10 Economic impacts %d - 2011", start_year))
 ```
+
+
+Here there are differences between the two indicators.  Flood is responsible for nearly half of the property damage whereas drought tops the list for crop damage.  It is perhaps unsurprising that drought does not feature at all in the top ten causes of property damage. 
+
 
 ### Distribution of effects across the United States
 
+There are regional differences in the effect of weather across the United States.  The states who reported the ten highest indicators across fatalities, injuries, property damage and crop damage are captured in the following table.
+
 ```{r resultsstates}
-summary_table_fourcol(analysis_annual_states, "STATE", c("event_fatalities","Fatalities"), c("event_injuries","Injuries"), c("event_property_damage","Property Damage (&dollar;’000)"), c("event_crop_damage","Crop Damage (&dollar;’000)"), sprintf("Top 10 impacted states %d - 2011", start_year))
-
-
-              
+summary_table_fourcol(analysis_annual_states, "STATE", 
+                      c("event_fatalities","Fatalities"), 
+                      c("event_injuries","Injuries"), 
+                      c("event_property_damage","Property Damage (&dollar;’000)"),
+                      c("event_crop_damage","Crop Damage (&dollar;’000)"), 
+                      sprintf("Top 10 impacted states %d - 2011", start_year),
+                      other="other states")
 ```
+
+The states of Missouri, California, Texas and Florida feature in the top ten across all four categories.  North Carolina records high levels of public health impacts, but not econmically, whereas Louisiana has the opposite.  
+
+Further analysis of the Louisiana data shows that the hurricane of 2005 accounted for almost all this total over the period.  However, there are no fatalities or injuries recorded for this event which is not correct. The raw data should be re-examined to ensure accuracy.
 
 
 ### Events carrying the largest annual risk
 
+The final analysis is to look at the annual risk posed by different type of events.  In order to do this, the average annual contribution to each of the four indicators is calculated over the period 2001 to 2011.
+
+Events that are more than 1% of the annual total are then filtered for further analysis.
 
 ```{r graphs}
 lowest_percent=0.01
@@ -304,7 +332,12 @@ event_summary <-  analysis_annual_events %>% group_by(EVTYPE) %>%
                            m_injury_percent = mean(event_injury_percent),
                            m_property_percent = mean(event_property_damage_percent),
                            m_crop_percent = mean(event_crop_damage_percent))
+```
 
+
+The following plot shows which events contribute more than 1% of injuries or fatalities on average.
+
+```{r graphph}
 par(mar=c(2,2,4,1))
 ggplot(subset(event_summary, (m_fatality_percent >lowest_percent | m_injury_percent >lowest_percent)),
                 aes(m_injury_percent, m_fatality_percent), height=800, width=800) + 
@@ -319,7 +352,15 @@ ggplot(subset(event_summary, (m_fatality_percent >lowest_percent | m_injury_perc
                 geom_segment(y=lowest_percent,yend=lowest_percent,x=0.0001,xend=1, colour="blue", linetype="dashed") +
                 geom_segment(y=0.0001,yend=1,x=lowest_percent,xend=lowest_percent, colour="blue", linetype="dashed") +
                 ggtitle(sprintf("Weather events with the biggest impact on Population Health: %d - 2011", start_year))
+```
 
+
+There are a number of events that produce more than 1% on both measures.  Hail has a significant contribution to injury but hardly any deaths.  Similarly, the Cold causes a high proportion of annual fatality, but not much in the way of injury.
+
+The final plot below highlights events that contribute more than 1% of economic damage to property and crops.
+
+
+```{r graphecon}
 ggplot(subset(event_summary, m_crop_percent >lowest_percent | m_property_percent >lowest_percent),
                 aes(m_crop_percent, m_property_percent), height=800, width=800) + 
                 geom_point() +
@@ -333,9 +374,8 @@ ggplot(subset(event_summary, m_crop_percent >lowest_percent | m_property_percent
                 geom_segment(y=lowest_percent,yend=lowest_percent,x=0.0000001,xend=1, colour="blue", linetype="dashed") +
                 geom_segment(y=0.0000001,yend=1,x=lowest_percent,xend=lowest_percent, colour="blue", linetype="dashed") +
                 ggtitle(sprintf("Weather events with the biggest economic impact: %d - 2011", start_year))        
-
-
-
-
 ```
 
+Again, there are a number of events which contribute signicantly to both property and crop damage each year.
+
+There are also events which effect one economic indicator more than the other.  For example, heat is a significant risk for crops, but hardly causes any property damage.
