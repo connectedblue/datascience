@@ -52,11 +52,6 @@ sim_data <- matrix(rexp(sample_size*num_sims, lambda), nrow = num_sims)
 
 sample_means <- as.data.frame(apply(sim_data, 1, mean))
 
-ggplot(data=as.data.frame(sample_means),aes(x=sample_means)) 
-        + geom_histogram(bins=60, aes(y=..density..))
-        + stat_function(fun = dnorm, 
-                        args = list(mean=1/lambda, sd=1/lambda^2/sample_size), 
-                        color="red", lwd=2)
 
 ```
 
