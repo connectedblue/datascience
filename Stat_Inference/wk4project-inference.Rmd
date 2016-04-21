@@ -8,6 +8,7 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
+library(datasets)
 ```
 
 
@@ -38,7 +39,17 @@ Include English explanations of the simulations you ran, with the accompanying R
 
 
 ```{r loaddata}
+data(ToothGrowth)
 
+par(mfrow=c(1,2),oma = c(0, 0, 2, 0))
+
+boxplot(len~supp, data=ToothGrowth)
+boxplot(len~dose, data=ToothGrowth)
+mtext("Tooth length by Supplement and Dose",  outer = TRUE, cex = 1.5)
+
+plot(len~dose, data = ToothGrowth[ToothGrowth$supp=="OJ",], main="OJ Supplement")
+plot(len~dose, data = ToothGrowth[ToothGrowth$supp=="VC",], main="VC supplement")
+ 
 
 ```
 
