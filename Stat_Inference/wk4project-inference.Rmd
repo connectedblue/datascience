@@ -9,6 +9,10 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(datasets)
+library(knitr)
+knitr::knit_hooks$set(inline = function(x) {
+  knitr:::format_sci(x, 'md')
+})
 ```
 
 
@@ -53,11 +57,69 @@ plot(len~dose, data = ToothGrowth[ToothGrowth$supp=="VC",], main="VC supplement"
 
 ```
 
+```{r summarisedata}
+#extract measurements for each of the supplement types and dosage levels
+vc<-ToothGrowth[ToothGrowth$supp=="VC",]$len
+oj<-ToothGrowth[ToothGrowth$supp=="OJ",]$len
+d_05<-ToothGrowth[ToothGrowth$dose==0.5,]$len
+d_1<-ToothGrowth[ToothGrowth$dose==1,]$len
+d_2<-ToothGrowth[ToothGrowth$dose==2,]$len
 
+# Calculate aggregrated statistics on supp and dose (number of obs, mean and sd)
+ag<-aggregate(len~supp+dose, ToothGrowth, 
+              function(x) c(n=as.integer(length(x)), 
+                            mn=round(mean(x),2), 
+                            sd=round(sd(x),2)))
+
+# force the aggregrated output into a printable dataframe and re-order
+ag <- cbind(ag[,1:2], as.data.frame(unlist(ag$len)))
+ag <- ag[with(ag, order(supp, dose)),]
+
+kable(ag, col.names = c("Supplement", "Dose", "Num obs", "Mean", "Std dev"),
+           row.names = FALSE,
+          align=c("c", "c", "c", "c", "c"),
+          caption = "Summary of tooth length by supplement and dosage")
+```
 
 # Hypothesis testing
 
-Include figures with titles. In the figures, highlight the means you are comparing. Include text that explains the figures and what is shown on them, and provides appropriate numbers.
+First we compare the different supplements, OJ and VC.  The mean tooth length from the population using each of these is $\mu_{oj}$ and $\mu_{vc}$ respectively.  The null hypothesis, $H_0$ is that these means are equal, i.e: 
+$$H_0 : \mu_{oj} = \mu_{vc}$$
+$$H_a : \mu_{oj} \neq \mu_{vc}$$
+We want to find evidence of whether the alternative hypothesis $H_a$ may be true, that the means are not equal.
+
+We run a two sided t-test and extract the p-value:
+
+```{r ojvcttest}
+pv <- t.test(oj, vc, paired=FALSE, var.equal = TRUE, alternative = "two.sided")
+```
+
+The p-value is calculated at `r round(pv$p.value,4)`.  This is quite high, so we fail to reject the null hypthosis and conclude there is no evidence that the means are different.
+
+Next we will compare the differences in tooth length depending on dosage level.  The mean tooth length from the population for each is $\mu_2$, $\mu_1$ and $\mu_{0.5}$ respectively.  The null hypothesis, $H_0$ is that these means are equal, i.e: 
+$$H_0 : \mu_{oj} = \mu_{vc}$$
+$$H_a : \mu_{oj} \neq \mu_{vc}$$
+We want to find evidence of whether the alternative hypothesis $H_a$ may be true, that the means are not equal.
+
+We run a two sided t-test and extract the p-value:
+
+```{r ojvcttest}
+pv <- t.test(oj, vc, paired=FALSE, var.equal = TRUE, alternative = "two.sided")
+```
+
+The p-value is calculated at `r round(pv$p.value,4)`.  This is quite high, so we fail to reject the null hypthosis and conclude there is no evidence that the means are different.
+
+```{r hypothesistest}
+
+t.test(oj, vc, paired=FALSE, var.equal = TRUE, alternative = "two.sided")
+t.test(d_2, d_05, paired=FALSE, var.equal = TRUE, alternative = "greater")
+t.test(d_2, d_1, paired=FALSE, var.equal = TRUE, alternative = "greater")
+t.test(d_1, d_05, paired=FALSE, var.equal = TRUE, alternative = "greater")
+
+```
+
+
+
 
 # Assumptions
 Include figures (output from R) with titles. Highlight the variances you are comparing. Include text that explains your understanding of the differences of the variances.
