@@ -18,7 +18,7 @@ knitr::knit_hooks$set(inline = function(x) {
 
 # Synopsis
 
-This paper analyses how dosage levels and delivery method of vitmain C effect the length of odontoblasts (cells responsible for tooth growth) in 60 guinea pigs. Each animal received one of three dose levels of vitamin C (0.5, 1, and 2 mg/day) by one of two delivery methods, (orange juice or ascorbic acid (a form of vitamin C and coded as VC).  
+This paper analyses how dosage levels and delivery method of vitamin C effect the length of odontoblasts (cells responsible for tooth growth) in 60 guinea pigs. Each animal received one of three dose levels of vitamin C (0.5, 1, and 2 mg/day) by one of two delivery methods, (orange juice or ascorbic acid (a form of vitamin C and coded as VC).  
 
 We conclude that dose levels make a significant impact to the mean odontoblasts cell length, whereas the delivery methods do not.
 
@@ -53,7 +53,7 @@ kable(ag, col.names = c("Supplement", "Dose", "Num obs", "Mean", "Std dev"),
 
 # Assumptions
 
-The population of odontoblast cell lengths is assumed to be normally distributed with mean $\mu$ and variance $\sigma^2$.  The table above shows that the mean is very different depending on the dose and delivery method of vitmain C.  
+The population of odontoblast cell lengths is assumed to be normally distributed with mean $\mu$ and variance $\sigma^2$.  The table above shows that the mean is very different depending on the dose and delivery method of vitamin C.  
 
 The plots overleaf show how the length varies depending on these variables.
 
