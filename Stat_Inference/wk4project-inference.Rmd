@@ -2,7 +2,7 @@
 title: "Analysis of the Effect of Vitamin C on Tooth Growth in Guinea Pigs"
 author: "Chris Shaw"
 date: "23 April 2016"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
