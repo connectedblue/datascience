@@ -20,11 +20,11 @@ knitr::knit_hooks$set(inline = function(x) {
 
 This paper analyses how dosage levels and delivery method of vitmain C effect the length of odontoblasts (cells responsible for tooth growth) in 60 guinea pigs. Each animal received one of three dose levels of vitamin C (0.5, 1, and 2 mg/day) by one of two delivery methods, (orange juice or ascorbic acid (a form of vitamin C and coded as VC).  
 
-We conclude that dose levels make a significant impact to the mean tooth length, whereas the delivery methods do not.
+We conclude that dose levels make a significant impact to the mean odontoblasts cell length, whereas the delivery methods do not.
 
 # Exploratory Analysis
 
-The following table summarises the dataset.  The mean and standard deviation of cell length is show for each dosage level and each delivery method.  The number of observations in each grouping is also shown.
+The following table summarises the dataset.  The mean and standard deviation of cell length is shown for each dosage level and each delivery method.  The number of observations in each grouping is also shown.
 
 ```{r summarisedata, echo=FALSE}
 data(ToothGrowth)
@@ -48,12 +48,12 @@ ag <- ag[with(ag, order(supp, dose)),]
 kable(ag, col.names = c("Supplement", "Dose", "Num obs", "Mean", "Std dev"),
            row.names = FALSE,
           align=c("c", "c", "c", "c", "c"),
-          caption = "Summary of tooth length by supplement and dosage")
+          caption = "Summary of cell length by supplement and dosage")
 ```
 
 # Assumptions
 
-The population of odontoblast cell lengths is assumed to be normally distributed with mean $\mu$ and variance $\sigma^2$.  The table above ahows that the mean is very different depending on the dose and delivery method of vitmain C.  
+The population of odontoblast cell lengths is assumed to be normally distributed with mean $\mu$ and variance $\sigma^2$.  The table above shows that the mean is very different depending on the dose and delivery method of vitmain C.  
 
 The plots overleaf show how the length varies depending on these variables.
 
@@ -62,17 +62,17 @@ The plots overleaf show how the length varies depending on these variables.
 par(mfrow=c(1,2),oma = c(0, 0, 2, 0))
 
 boxplot(len~supp, data=ToothGrowth, xlab="Delivery Method", ylab="Cell length")
-boxplot(len~dose, data=ToothGrowth, xlab="Dose Level", ylab="Cell length")
+boxplot(len~dose, data=ToothGrowth, xlab="Dose Level (mg/day)", ylab="Cell length")
 mtext("Distribution of cell length by Delivery Method and Dose",  outer = TRUE)
 ```
 
 Although the OJ delivery method seems to have a larger mean, the variance of the VC method is much wider. However, when it comes to dose levels, the mean seems to clearly increase as doseage increases.
 
-Both of these will be examined more rigorously by hypothesis testing.
+Both of these will be examined more rigorously by hypothesis testing.  Because the population is assumed to be normally distributed, we will use the Student T test as the statistical method to analyse the data.  
 
 # Hypothesis testing
 
-First we compare the different supplements, OJ and VC.  The mean tooth length from the population using each of these is $\mu_{oj}$ and $\mu_{vc}$ respectively.  The null hypothesis, $H_0$ is that these means are equal, i.e: 
+First we compare the different supplements, OJ and VC.  The mean cell length from the population using each of these is $\mu_{oj}$ and $\mu_{vc}$ respectively.  The null hypothesis, $H_0$ is that these means are equal, i.e: 
 $$H_0 : \mu_{oj} = \mu_{vc}$$
 $$H_a : \mu_{oj} \neq \mu_{vc}$$
 We want to find evidence of whether the alternative hypothesis $H_a$ may be true, that the means are not equal.
@@ -81,10 +81,13 @@ We want to find evidence of whether the alternative hypothesis $H_a$ may be true
 pv <- t.test(oj, vc, paired=FALSE, var.equal = TRUE, alternative = "two.sided")
 ```
 
-A two sided t-test was performed to test this (see appendix for details). The p-value is calculated at `r round(pv$p.value,4)`.  This is quite high, so we fail to reject the null hypthosis and conclude there is no evidence that the means are different.
+A two sided t-test was performed to test this (see appendix for details). The 30 measurements for the OJ delivery method were tested against the 30 measurements for the VC method.  The confidence level was 95% and the variance assumed to be the same across both populations.
+
+The p-value is calculated at `r round(pv$p.value,4)`.  This is quite high, so we fail to reject the null hypthosis and conclude there is no evidence that the means are different.
 
 \newpage
-Next we compare the differences in cell length depending on dosage level.  The mean tooth length from the population for each is $\mu_2$, $\mu_1$ and $\mu_{0.5}$ respectively.  The null hypothesis, $H_0$ is that these means are equal, i.e: 
+
+Next we compare the differences in cell length depending on dosage level.  The mean cell length from the population for each is $\mu_2$, $\mu_1$ and $\mu_{0.5}$ respectively.  The null hypothesis, $H_0$ is that these means are equal, i.e: 
 $$H_0 : \mu_2 = \mu_1$$
 $$H_a : \mu_2 > \mu_1$$
 We want to find evidence of whether the alternative hypothesis $H_a$ may be true, that $\mu_2$ is greater than $\mu_1$.
@@ -93,7 +96,9 @@ We want to find evidence of whether the alternative hypothesis $H_a$ may be true
 pv <- t.test(d_2, d_1, paired=FALSE, var.equal = TRUE, alternative = "greater")
 ```
 
-We run a one sided t-test (see appendix) and the p-value is calculated at `r pv$p.value`.  This is very low, so we reject the null hypthosis and conclude the alternate hypothesis $H_a$ is true.
+A one sided t-test was performed to test this (see appendix for details). The 20 measurements for the dose level 2 were tested against the 20 measurements for dose level one.  The confidence level was 95% and the variance assumed to be the same across both populations.  
+
+The p-value is calculated at `r pv$p.value`.  This is very low, so we reject the null hypthosis and conclude the alternate hypothesis $H_a$ is true.
 
 
 # Conclusion
