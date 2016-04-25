@@ -2,7 +2,7 @@
 title: "Analysis of the Exponential distribution using simulation"
 author: "Chris Shaw"
 date: "23 April 2016"
-output: pdf_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -17,7 +17,7 @@ library(knitr)
 
 # Overview
 
-This paper analyses a simulation of the Exponential distribution in order to investigate how the sample mean and variance compare to the theorietical values.  The sample mean distribution is also analysed to see how well it conforms to what is predicted  by the Central Limit Theorem (CLT).
+This paper analyses a simulation of the Exponential distribution in order to investigate how the sample mean and variance compare to the theoretical values.  The sample mean distribution is also analysed to see how well it conforms to what is predicted  by the Central Limit Theorem (CLT).
 
 We conclude that the distribution of simulated sample means is indeed in accordance with the CLT.
 
@@ -64,7 +64,7 @@ nrow(sim_data)` rows.  The name of this matrix is  **sim_data**.
 
 # Sample Mean versus Theoretical Mean
 
-The mean of each row of **sim_data** is computed and stored in the **sample_means** variable.  It is a simple matter to take the mean of these `r nrow(sample_means)` values and compare with the theorietical mean $1/\lambda$:
+The mean of each row of **sim_data** is computed and stored in the **sample_means** variable.  It is a simple matter to take the mean of these `r nrow(sample_means)` values and compare with the theoretical mean $1/\lambda$:
 
 ```{r summarymeantable, echo=FALSE}
 kable(data.frame(c("Population mean", "Mean of Sample means"), c(mean, sample_mean)),
@@ -72,7 +72,7 @@ kable(data.frame(c("Population mean", "Mean of Sample means"), c(mean, sample_me
       caption = "Comparison of sample mean to population mean")
 ```
 
-The sample mean is very close to the theorietical mean after `r num_sims` simulations.
+The sample mean is very close to the theoretical mean after `r num_sims` simulations.
 
 # Sample Variance versus Theoretical Variance
 
@@ -82,18 +82,18 @@ $$\frac{\sum_{i=1}^{1000} (n_i - 1) s_i^2}{\sum_{i=1}^{1000} (n_i - 1)}$$
 
 where $s_i^2$ is the variance of each sample and $n_i$ is the sample size (in this case `r sample_size`).  The code for this calculation is shown in the appendix.
 
-The following table shows the theorietical variance compared to this pooled variance.
+The following table shows the theoretical variance compared to this pooled variance.
 ```{r summaryvartable, echo=FALSE}
 kable(data.frame(c("Population variance", "Pooled sample variance"), c(var, sample_std)),
       digits=3, col.names = c("Statistic", "Value"),
       caption = "Comparison of sample variance to population variance")
 ```
 
-It can be seen that the pooled variation from the simulation is very close again to the theorietical variance after `r num_sims` simulations.
+It can be seen that the pooled variation from the simulation is very close again to the theoretical variance after `r num_sims` simulations.
 
 # Distribution
 
-The next task is to compare the distribution density of the sample means to the theorietical distribution under the Central Limit Theorem of:
+The next task is to compare the distribution density of the sample means to the theoretical distribution under the Central Limit Theorem of:
 
 $$X_n \sim N(\frac{1}{\lambda} , \frac{1}{n\lambda^2}) $$
 

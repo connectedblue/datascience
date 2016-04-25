@@ -2,7 +2,7 @@
 title: "Analysis of the Effect of Vitamin C on Tooth Growth in Guinea Pigs"
 author: "Chris Shaw"
 date: "23 April 2016"
-output: pdf_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -66,7 +66,7 @@ boxplot(len~dose, data=ToothGrowth, xlab="Dose Level (mg/day)", ylab="Cell lengt
 mtext("Distribution of cell length by Delivery Method and Dose",  outer = TRUE)
 ```
 
-Although the OJ delivery method seems to have a larger mean, the variance of the VC method is much wider. However, when it comes to dose levels, the mean seems to clearly increase as doseage increases.
+Although the OJ delivery method seems to have a larger mean, the variance of the VC method is much wider. However, when it comes to dose levels, the mean seems to clearly increase as dosage increases.
 
 Both of these will be examined more rigorously by hypothesis testing.  Because the population is assumed to be normally distributed, we will use the Student T test as the statistical method to analyse the data.  
 
@@ -83,7 +83,7 @@ pv <- t.test(oj, vc, paired=FALSE, var.equal = TRUE, alternative = "two.sided")
 
 A two sided t-test was performed to test this (see appendix for details). The 30 measurements for the OJ delivery method were tested against the 30 measurements for the VC method.  The confidence level was 95% and the variance assumed to be the same across both populations.
 
-The p-value is calculated at `r round(pv$p.value,4)`.  This is quite high, so we fail to reject the null hypthosis and conclude there is no evidence that the means are different.
+The p-value is calculated at `r round(pv$p.value,4)`.  This is quite high, so we fail to reject the null hypothesis and conclude there is no evidence that the means are different.
 
 \newpage
 
@@ -98,7 +98,7 @@ pv <- t.test(d_2, d_1, paired=FALSE, var.equal = TRUE, alternative = "greater")
 
 A one sided t-test was performed to test this (see appendix for details). The 20 measurements for the dose level 2 were tested against the 20 measurements for dose level one.  The confidence level was 95% and the variance assumed to be the same across both populations.  
 
-The p-value is calculated at `r pv$p.value`.  This is very low, so we reject the null hypthosis and conclude the alternate hypothesis $H_a$ is true.
+The p-value is calculated at `r pv$p.value`.  This is very low, so we reject the null hypothesis and conclude the alternate hypothesis $H_a$ is true.
 
 
 # Conclusion
@@ -106,7 +106,7 @@ The p-value is calculated at `r pv$p.value`.  This is very low, so we reject the
 The analysis of the data and the hypothesis testing leads us to the following conclusions:
 
 * It is not possible to determine whether the delivery method of orange juice or ascorbic acid produces a higher mean cell length.
-* The doseage levels however do produce a significant difference and enables us to say that higher doses will lead to a higher mean cell length.
+* The dosage levels however do produce a significant difference and enables us to say that higher doses will lead to a higher mean cell length.
 
 \clearpage
 \appendix
