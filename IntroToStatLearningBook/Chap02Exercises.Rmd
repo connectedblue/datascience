@@ -3,9 +3,9 @@ title: "Chapter Two Exercises"
 author: "Chris Shaw"
 date: "30 April 2016"
 output: pdf_document
-header-includes: 
-        - \usepackage{xcolor}
-        - \usepackage{changepage}
+header-includes:
+- \usepackage{xcolor}
+- \usepackage{changepage}
 ---
 
 ```{r setup, include=FALSE}
@@ -51,15 +51,13 @@ Flexible methods are those which allow a number of different functional forms $f
 
 (b) don't know
 
-Some code:
+(c) If the relationship between the predictors and the response is highly non-linear, then a flexible method will give better performance
+
+(d) If the variance of the error term is high, this is likely to correlate with a flexible method.  So an inflexible method would be preferable to reduce the variance.
+
+
 \end{myanswer}
 
-
-```{r test}
-x<-1
-y<-2
-x+y
-```
 
 
 \begin{theiranswer}
@@ -74,9 +72,6 @@ better fit
 (d) worse - flexible methods fit to the noise in the error terms and increase variance
 
 \end{theiranswer}
-
-
-
 
 
 
@@ -99,6 +94,32 @@ we collect weekly data for all of 2012. For each week we record
 the % change in the dollar, the % change in the US market,
 the % change in the British market, and the % change in the
 German market.
+
+\begin{myanswer}
+ (a)  CEO salary is a continuous variable, so the problem is one of regression.  It is an inference problem because we are interested in which factors affect the salary.  $n$ is 500 (number of observations) and $p$ is 3 (number of variables which combine to produce the CEO salary)
+ 
+(b)  The success of the project is categorical (success/fail) so this is a classification problem.  It is a prediction problem because we just want to know the outcome, not the relationship between the predictors and the outcome.  $n$ is 20 and $p$ is 13.
+
+(c)  This is a prediction problem because we just want the overall % change.  It is a regression model because weekly % change is a continuous variable.  $n$ is 52 (number of weeks in 2012) and $p$ is 3.
+
+\end{myanswer}
+
+\begin{theiranswer}
+2. (a) regression. inference. quantitative output of CEO salary based on CEO
+firm's features.
+n - 500 firms in the US
+p - profit, number of employees, industry
+
+(b) classification. prediction. predicting new product's success or failure.
+n - 20 similar products previously launched
+p - price charged, marketing budget, comp. price, ten other variables
+
+(c) regression. prediction. quantitative output of % change
+n - 52 weeks of 2012 weekly data
+p - % change in US market, % change in British market, % change in German market
+
+
+\end{theiranswer}
 
 3. We now revisit the bias-variance decomposition.
 (a) Provide a sketch of typical (squared) bias, variance, training error,
