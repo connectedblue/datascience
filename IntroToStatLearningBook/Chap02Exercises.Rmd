@@ -12,11 +12,20 @@ header-includes:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-\newenvironment{answer}
+\newenvironment{myanswer}
 {\color{blue}\begin{tt}\begin{adjustwidth}{2.5em}{0pt}}
 {\end{adjustwidth}\end{tt}}
 
+\newenvironment{theiranswer}
+{\color{red}\begin{tt}\begin{adjustwidth}{2.5em}{0pt}\underline{\textbf{Unofficial Solution:}}\newline\newline}
+{\end{adjustwidth}\end{tt}}
 
+
+# Unofficial solutions
+
+Somebody has documented solutions to all the exercises unoffically: [http://blog.princehonest.com/stat-learning/](http://blog.princehonest.com/stat-learning/)
+
+My answers are in \color{blue}\texttt{blue }\normalcolor and the answers from the unofficial site are in \color{red}\texttt{red}\normalcolor.
 
 # Conceptual
 
@@ -32,18 +41,41 @@ non-linear.
 (d) The variance of the error terms, i.e. $\sigma^2$  = Var($\epsilon$), is extremely
 high.
 
-a.  not sure
-a.  don't know
+
+\begin{myanswer}
+Flexible methods are those which allow a number of different functional forms $f$ to be applied to the input variables $X_1,...,X_p$ to model the output variable $Y$.
+
+(a) If there are a large number $n$ of observations, then the inflexible method will perform better when the number of predictors $p$ is small.  This is because there is a danger of overfitting in an flexible model.  Moreover, the large number of observations will allow an accurate estimate of the small number of predictors with an inflexible model such as linear regression.
 
 
 
-\begin{answer}
-This is my answer to question one, using the answer environment
+(b) don't know
 
-1.  not sure
-1.  don't know
+Some code:
+\end{myanswer}
 
-\end{answer}
+
+```{r test}
+x<-1
+y<-2
+x+y
+```
+
+
+\begin{theiranswer}
+1. (a) better - a more flexible approach will fit the data closer and with the
+large sample size a better fit than an inflexible approach would be obtained
+
+(b) worse - a flexible method would overfit the small number of observations
+
+(c) better - with more degrees of freedom, a flexible model would obtain a
+better fit
+
+(d) worse - flexible methods fit to the noise in the error terms and increase variance
+
+\end{theiranswer}
+
+
 
 
 
