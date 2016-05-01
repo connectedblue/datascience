@@ -26,6 +26,7 @@ We conclude that dose levels make a significant impact to the mean odontoblasts 
 
 The following table summarises the dataset.  The mean and standard deviation of cell length is shown for each dosage level and each delivery method.  The number of observations in each grouping is also shown.
 
+
 ```{r summarisedata, echo=FALSE}
 data(ToothGrowth)
 #extract measurements for each of the supplement types and dosage levels
