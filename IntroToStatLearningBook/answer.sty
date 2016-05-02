@@ -1,0 +1,21 @@
+% Provide a definition of custom environments for answering questions in the chapter
+
+% packages needed to build the environments
+\usepackage{xcolor}
+\usepackage{changepage}
+\usepackage{pifont}
+
+% myanswer provides a container for formatting my attempts at an answer.
+\newenvironment{myanswer}
+{\color{blue}\begin{tt}\begin{adjustwidth}{2.5em}{0pt}}
+{\end{adjustwidth}\end{tt}}
+
+% theiranswer is a format for highlighting the unofficial answers
+\newenvironment{theiranswer}
+{\color{red}\begin{tt}\begin{adjustwidth}{2.5em}{0pt}\underline{\textbf{Unofficial Solution:}}\newline\newline}
+{\end{adjustwidth}\end{tt}}
+
+% A tick and a cross above each paragraph will place a mark in the right margin
+
+\newcommand{\tick}{\mbox{}\marginpar{\LARGE\textcolor{green}{\ding{51}\normalsize}}}
+\newcommand{\cross}{\mbox{}\marginpar{\LARGE\color{red}\ding{55}\normalcolor\normalsize}}

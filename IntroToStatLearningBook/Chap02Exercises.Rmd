@@ -1,28 +1,19 @@
 ---
+output: pdf_document
+---
+---
 title: "Chapter Two Exercises"
 author: "Chris Shaw"
 date: "30 April 2016"
 output: pdf_document
 header-includes:
-- \usepackage{xcolor}
-- \usepackage{changepage}
-- \usepackage{pifont}
+ - \input{answer.sty}
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-\newenvironment{myanswer}
-{\color{blue}\begin{tt}\begin{adjustwidth}{2.5em}{0pt}}
-{\end{adjustwidth}\end{tt}}
-
-\newenvironment{theiranswer}
-{\color{red}\begin{tt}\begin{adjustwidth}{2.5em}{0pt}\underline{\textbf{Unofficial Solution:}}\newline\newline}
-{\end{adjustwidth}\end{tt}}
-
-\newcommand{\tick}{\mbox{}\marginpar{\LARGE\textcolor{green}{\ding{51}\normalsize}}}
-\newcommand{\cross}{\mbox{}\marginpar{\LARGE\color{red}\ding{55}\normalcolor\normalsize}}
 
 
 # Unofficial solutions
@@ -144,7 +135,7 @@ Make sure to label each one.
 (b) Explain why each of the five curves has the shape displayed in
 part (a).
 
-![Error curves for flexible versus inflexible methods](MyQues3a.jpg)
+![](MyQues3a.jpg)
 \begin{myanswer}
 \tick
 (a)  See above
