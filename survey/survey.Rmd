@@ -30,14 +30,15 @@ survey <- merge(survey, topic_weights, by="topic")
 
 # Calculate the score for each response
 lowest_priority=max(survey$priority)
-survey <- survey %>% mutate(score=(weight-1)*(lowest_priority + 1 - priority))
+survey <- survey %>% mutate(score=(lowest_priority + 1 - priority))
 
 # Calculate the total topic scores in order
 topic_scores <- survey %>% group_by(topic) %>% summarise(topic_score=sum(score)) %>%
                            arrange(desc(topic_score))
 
-ggplot(survey, aes(x=as.factor(priority), y=topic, colour=as.factor(priority))) + 
-               geom_point(size=score) + scale_y_discrete(limits=topic_scores$topic)
+# ggplot(survey, aes(x=as.factor(priority), y=topic, colour=as.factor(priority))) + 
+#               geom_point(size=score) + scale_y_discrete(limits=topic_scores$topic)
+
                 
 
 ```
