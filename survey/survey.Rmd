@@ -1,0 +1,44 @@
+---
+title: "Analysing survey data in Public Health"
+author: "Chris Shaw"
+date: "12 May 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(xlsx)
+library(reshape2)
+library(dplyr)
+library(ggplot2)
+```
+
+
+```{r}
+# Get the data from excel and flatten into a data set that can be manipulated more easily
+raw_data <- read.xlsx("surveydata.xlsx",1)
+respondent <- names(raw_data)[1]
+survey<-melt(raw_data, id.vars = respondent, variable.name="topic",
+                na.rm=TRUE, value.name="priority")
+
+# Calculate how many people responded to each question and use that as the weight
+topic_weights <- survey %>% group_by(topic) %>% tally %>%
+                     rename(weight=n)
+
+# Mix the weights into the survey data
+survey <- merge(survey, topic_weights, by="topic")
+
+# Calculate the score for each response
+lowest_priority=max(survey$priority)
+survey <- survey %>% mutate(score=(weight-1)*(lowest_priority + 1 - priority))
+
+# Calculate the total topic scores in order
+topic_scores <- survey %>% group_by(topic) %>% summarise(topic_score=sum(score)) %>%
+                           arrange(desc(topic_score))
+
+ggplot(survey, aes(x=as.factor(priority), y=topic, colour=as.factor(priority))) + 
+               geom_point(size=score) + scale_y_discrete(limits=topic_scores$topic)
+                
+
+```
+
