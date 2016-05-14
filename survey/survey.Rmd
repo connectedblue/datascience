@@ -11,35 +11,139 @@ library(xlsx)
 library(reshape2)
 library(dplyr)
 library(ggplot2)
+library(knitr)
+library(stringr)
 ```
 
+# Introduction
 
-```{r}
+Surveys are an essential part of policy making in Public Health.  Limited resources have to be allocated to deliver the maximum outcomes.  Conducting a survey across a wide spectrum of public health professionals is a valuable way to gather prevailing information and prioritise policy areas to address.
+
+This paper examines effective ways to analyse and present survey data to support the decision making process about areas to concentrate on.
+
+# Raw survey data
+
+The appendix shows a simulated survey with 10 questions and 19 responses.  The raw data is captured in an excel spreadsheet in a tabulated manner.  The topics are the column headings.  Each row corresponds to one response.  The participant's topic preferences are indicated by a number - 1 being the highest preference.  Only three preferences are allowed per reponse in strict order.
+
+The analysis will work on any number of topic colums, responses or preference choices.
+
+
+
+```{r loaddata }
+xlsfile="surveydata.xlsx"
+
+```
+
+```{r calcscore}
+
+calculate_scores <- function(number_to_select=4) {
 # Get the data from excel and flatten into a data set that can be manipulated more easily
-raw_data <- read.xlsx("surveydata.xlsx",1)
-respondent <- names(raw_data)[1]
-survey<-melt(raw_data, id.vars = respondent, variable.name="topic",
+response_data <<- read.xlsx(xlsfile,1)
+topic_data <<- read.xlsx(xlsfile,2)
+
+respondent <- names(response_data)[1]
+survey<-melt(response_data, id.vars = respondent, variable.name="topic",
                 na.rm=TRUE, value.name="priority")
+survey$RespondentID <- as.factor(survey$RespondentID)
+number_respondents=nrow(response_data)
 
-# Calculate how many people responded to each question and use that as the weight
-topic_weights <- survey %>% group_by(topic) %>% tally %>%
-                     rename(weight=n)
-
-# Mix the weights into the survey data
-survey <- merge(survey, topic_weights, by="topic")
-
+        
+        
 # Calculate the score for each response
 lowest_priority=max(survey$priority)
-survey <- survey %>% mutate(score=(lowest_priority + 1 - priority))
+survey <- survey %>% mutate(score=(lowest_priority + 1 - priority)^2)
 
-# Calculate the total topic scores in order
+# Calculate the total score per topic
 topic_scores <- survey %>% group_by(topic) %>% summarise(topic_score=sum(score)) %>%
-                           arrange(desc(topic_score))
+                           arrange(topic_score)
 
-# ggplot(survey, aes(x=as.factor(priority), y=topic, colour=as.factor(priority))) + 
-#               geom_point(size=score) + scale_y_discrete(limits=topic_scores$topic)
+# Put a 1 in the weight columm for the last number of topics determined by
+# number_to_select variable.  Other topics have weight zero.  This selects the topics
+# which are the most popular
+topic_scores$weight <- c(rep(0, nrow(topic_scores)-number_to_select),
+                         rep(1,number_to_select))
 
-                
+# Add the topic descriptions
+topic_scores <- merge(topic_scores, topic_data, by="topic")
+topic_scores <- arrange(topic_scores, topic_score)
 
+# Mix the weights into the survey data
+survey <- merge(survey, topic_scores, by="topic")
+
+# Caluculate the satisfaction for each respondent against the selected most
+# popular topics
+survey <- survey %>% mutate(satisfaction=score^2*weight)
+
+resp <- survey %>% group_by(RespondentID) %>% 
+        summarise(satisfaction=sum(satisfaction)) %>%
+        arrange(satisfaction)
+
+resp<<-resp
+topic_scores<<-topic_scores
+survey<<-survey
+}
 ```
 
+
+
+```{r plotscores}
+
+calculate_scores(3)
+# Create the y axis labels with the subject of each topic
+ylabels <- str_wrap(as.vector(topic_scores$subject), width = 25)
+names(ylabels)<-topic_scores$topic
+
+plot_topic_score <- function(number_to_select){
+        ggplot(topic_scores, aes(x=topic, y=topic_score)) + 
+        geom_bar(stat="identity") + 
+        scale_x_discrete(limits=topic_scores$topic,
+                         labels=ylabels) +
+        ylab("") + xlab("") +
+        theme(panel.grid.minor=element_blank(), 
+              panel.grid.major=element_blank(),
+              axis.text.x = element_text(angle = 90,  hjust=0, vjust=0.5)) +
+        geom_vline(aes(colour=4), xintercept =  nrow(topic_scores)- number_to_select +0.5,
+                   linetype="dashed")
+}
+
+plot_topic_score(3)+ggtitle("Three most popular topics across all respondents")
+```
+
+
+```{r plotresponses}
+
+
+
+plot_responses <- function (number_to_select) {
+
+ggplot(survey, aes(x=RespondentID, y=topic)) + 
+        geom_point(size=sqrt(survey$score)*1.5, colour="blue") + 
+        scale_y_discrete(limits=topic_scores$topic,
+                         labels=ylabels) +
+        ylab("") + xlab("") +
+        scale_x_discrete(limits=resp$RespondentID) +
+        theme(panel.grid.minor=element_blank(), 
+              panel.grid.major=element_blank(),
+              axis.text.x = element_blank(),
+              axis.text.y = element_text(hjust=0)) +
+        geom_hline(yintercept = nrow(topic_scores) - number_to_select + 0.5,
+                   linetype="dashed") +
+        geom_vline(xintercept = nrow(resp[resp$satisfaction==0,])+0.5,
+                   linetype="dashed")
+}
+
+plot_responses(3)
+                
+calculate_scores(4)
+plot_responses(4)
+```
+
+
+\newpage
+
+# Appendix
+```{r}
+response_data[is.na(response_data)] <- ""
+kable(response_data, align=rep("c", ncol(response_data)))
+kable(topic_data)
+```
