@@ -182,9 +182,22 @@ ggplot(survey, aes(x=RespondentID, y=topic)) +
 plot_responses(3) + ggtitle("Distribution of responses, ordered by satisfaction")
 ```
 
+
 We can see that nine respondents had one of the top three topics as their top priority, and a further five had their second choice.  Only three respondents had none of their topics at all selected.
 
 A judgement call can be made whether the score for \textit{`r ylabels[8]`} is really justified over the next one.  For example, \textit{`r ylabels[7]`} has three first choice preferences over two for the other (but chosen less overall).  The final choice rests with the policy analyst who will use her skill and judgement to make the recommendation.
+
+\newpage
+If a decision is made to swap out topic 4 for topic 3, we can re-plot the data to see the effect of this:
+
+```{r plot3forceswap}
+calculate_scores(3, c(8,7))
+plot_responses(3) + ggtitle("Effect of force swapping topic 4 for topic 3")
+```
+
+We can see that now 6 people have not had their preferences satisfied, even though 10 first choices are now included.  So, although the overall topic scores are close, the algorithm selected the approach which maximises the satisfaction across all respondents.
+
+It would be a brave policy analyst who swims against the tide of data analysis.
 
 \newpage
 
