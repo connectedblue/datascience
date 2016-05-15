@@ -3,10 +3,12 @@ title: "Analysing survey data in Public Health"
 author: "Chris Shaw"
 date: "12 May 2016"
 output: pdf_document
+header-includes:
+ - \usepackage{amsmath}
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
 library(xlsx)
 library(reshape2)
 library(dplyr)
@@ -27,6 +29,26 @@ The appendix shows a simulated survey with 10 questions and 19 responses.  The r
 
 The analysis will work on any number of topic colums, responses or preference choices.
 
+# Analysis
+
+The first task is to calculate a score for each topic as follows:
+
+$$\sum\limits_{\{n_i\}} (4-p_i)^2$$
+
+where $\{n_i\}$ is the subset of respondents who voted for that subject and $p_i$ is their individual priority for each topic (1 being the highest and 3 the lowest).
+
+Once the score is calculated for each topic, the top three topics can be determined easily.  However, as a second part of the analysis, we want to understand how well individual preferences are served by the top three.  In other words, we want a sense of individual satisfaction with the outcome.  This can be measured for each respondent by calculating
+
+
+$$
+\sum\limits_{i=1}^{i=3} T_is_i^2 \qquad \text{where $s_i$ is the topic score and } T_i=
+  \begin{cases}
+    1 & \text{if that topic is in the top three}.\\
+    0 & \text{otherwise}.
+  \end{cases}
+$$
+
+
 
 
 ```{r loaddata }
@@ -36,64 +58,78 @@ xlsfile="surveydata.xlsx"
 
 ```{r calcscore}
 
-calculate_scores <- function(number_to_select=4) {
-# Get the data from excel and flatten into a data set that can be manipulated more easily
-response_data <<- read.xlsx(xlsfile,1)
-topic_data <<- read.xlsx(xlsfile,2)
-
-respondent <- names(response_data)[1]
-survey<-melt(response_data, id.vars = respondent, variable.name="topic",
-                na.rm=TRUE, value.name="priority")
-survey$RespondentID <- as.factor(survey$RespondentID)
-number_respondents=nrow(response_data)
-
+calculate_scores <- function(number_to_select=4, force_swap=NULL) {
+        # Get the data from excel and flatten into a data set that can 
+        # be manipulated more easily
+        response_data <<- read.xlsx(xlsfile,1)
+        topic_data <<- read.xlsx(xlsfile,2)
         
+        respondent <- names(response_data)[1]
+        survey<-melt(response_data, id.vars = respondent, variable.name="topic",
+                        na.rm=TRUE, value.name="priority")
+        survey$RespondentID <- as.factor(survey$RespondentID)
+        number_respondents=nrow(response_data)
         
-# Calculate the score for each response
-lowest_priority=max(survey$priority)
-survey <- survey %>% mutate(score=(lowest_priority + 1 - priority)^2)
-
-# Calculate the total score per topic
-topic_scores <- survey %>% group_by(topic) %>% summarise(topic_score=sum(score)) %>%
-                           arrange(topic_score)
-
-# Put a 1 in the weight columm for the last number of topics determined by
-# number_to_select variable.  Other topics have weight zero.  This selects the topics
-# which are the most popular
-topic_scores$weight <- c(rep(0, nrow(topic_scores)-number_to_select),
-                         rep(1,number_to_select))
-
-# Add the topic descriptions
-topic_scores <- merge(topic_scores, topic_data, by="topic")
-topic_scores <- arrange(topic_scores, topic_score)
-
-# Mix the weights into the survey data
-survey <- merge(survey, topic_scores, by="topic")
-
-# Caluculate the satisfaction for each respondent against the selected most
-# popular topics
-survey <- survey %>% mutate(satisfaction=score^2*weight)
-
-resp <- survey %>% group_by(RespondentID) %>% 
-        summarise(satisfaction=sum(satisfaction)) %>%
-        arrange(satisfaction)
-
-resp<<-resp
-topic_scores<<-topic_scores
-survey<<-survey
+        # Calculate the score for each response
+        lowest_priority=max(survey$priority)
+        survey <- survey %>% mutate(score=(lowest_priority + 1 - priority)^2)
+        
+        # Calculate the total score per topic
+        topic_scores <- survey %>% group_by(topic) %>% 
+                        summarise(topic_score=sum(score)) %>%
+                        arrange(topic_score)
+        
+        # Put a 1 in the weight columm for the last number of topics determined by
+        # number_to_select variable.  Other topics have weight zero.  This selects
+        # the topics which are the most popular
+        topic_scores$weight <- c(rep(0, nrow(topic_scores)-number_to_select),
+                                 rep(1,number_to_select))
+        
+        if(!is.null(force_swap)){
+                     topic_scores$weight[force_swap[1]] <- 0
+                     topic_scores$weight[force_swap[2]] <- 1
+                     tmp <- topic_scores$topic_score[force_swap[1]] 
+                     topic_scores$topic_score[force_swap[1]] <- topic_scores$topic_score[force_swap[2]]
+                     topic_scores$topic_score[force_swap[2]] <- tmp
+        }
+        
+        # Add the topic descriptions
+        topic_scores <- merge(topic_scores, topic_data, by="topic")
+        topic_scores <- arrange(topic_scores, topic_score)
+        
+        # Mix the weights into the survey data
+        survey <- merge(survey, topic_scores, by="topic")
+        
+        # Calculate the satisfaction for each respondent against the selected most
+        # popular topics
+        survey <- survey %>% mutate(satisfaction=score^2*weight)
+        
+        resp <- survey %>% group_by(RespondentID) %>% 
+                summarise(satisfaction=sum(satisfaction)) %>%
+                arrange(satisfaction)
+        
+        resp<<-resp
+        topic_scores<<-topic_scores
+        survey<<-survey
 }
 ```
 
-
-
-```{r plotscores}
-
+```{r calc3}
 calculate_scores(3)
-# Create the y axis labels with the subject of each topic
+
+# Create the topic labels with the subject of each topic suitably word wrapped
 ylabels <- str_wrap(as.vector(topic_scores$subject), width = 25)
 names(ylabels)<-topic_scores$topic
+```
 
-plot_topic_score <- function(number_to_select){
+\newpage
+
+## Overall topic scores
+
+The plot below shows the overall scores for each survey topic.  There are two clear winners at the right hand side and clearly the topics on the far left are not so popular.  
+
+```{r plotscores}
+plot_topic_score <- function(){
         ggplot(topic_scores, aes(x=topic, y=topic_score)) + 
         geom_bar(stat="identity") + 
         scale_x_discrete(limits=topic_scores$topic,
@@ -101,19 +137,28 @@ plot_topic_score <- function(number_to_select){
         ylab("") + xlab("") +
         theme(panel.grid.minor=element_blank(), 
               panel.grid.major=element_blank(),
-              axis.text.x = element_text(angle = 90,  hjust=0, vjust=0.5)) +
-        geom_vline(aes(colour=4), xintercept =  nrow(topic_scores)- number_to_select +0.5,
-                   linetype="dashed")
+              axis.text.x = element_text(angle = 90,  hjust=0, vjust=0.5)) 
 }
-
-plot_topic_score(3)+ggtitle("Three most popular topics across all respondents")
 ```
+
+```{r plottopic}
+
+plot_topic_score()+ggtitle("Topic scores across all respondents")
+```
+
+However it is not at all clear whether the fourth most popular topic \textit{`r ylabels[7]`} should be selected over the third - the scores are very close.  
+
+\newpage
+
+## Satisfaction
+
+The plot below shows every response across all topics.  Each response is shown along the horizontal axis.  Every response has three topics selected.  The larger the dot, the higher the priority is for that respondent.
+
+The responses are arranged in order of satisfaction.  Those responses to the far right are in general more satisfied with the outcome.
+
 
 
 ```{r plotresponses}
-
-
-
 plot_responses <- function (number_to_select) {
 
 ggplot(survey, aes(x=RespondentID, y=topic)) + 
@@ -131,19 +176,59 @@ ggplot(survey, aes(x=RespondentID, y=topic)) +
         geom_vline(xintercept = nrow(resp[resp$satisfaction==0,])+0.5,
                    linetype="dashed")
 }
-
-plot_responses(3)
-                
-calculate_scores(4)
-plot_responses(4)
 ```
+
+```{r plot3}
+plot_responses(3) + ggtitle("Distribution of responses, ordered by satisfaction")
+```
+
+We can see that nine respondents had one of the top three topics as their top priority, and a further five had their second choice.  Only three respondents had none of their topics at all selected.
+
+A judgement call can be made whether the score for \textit{`r ylabels[8]`} is really justified over the next one.  For example, \textit{`r ylabels[7]`} has three first choice preferences over two for the other (but chosen less overall).  The final choice rests with the policy analyst who will use her skill and judgement to make the recommendation.
+
+\newpage
+
+## Allowing more topics to be selected
+
+Finally, an analysis can be made to see what would happen if four topics were to be selected rather than three.  The plot below shows how satisfaction changes by allowing one more topic to be included.
+```{r plot4}                
+calculate_scores(4)
+plot_responses(4) + ggtitle("Distribution of responses when four topics are allowed")
+```
+
+Now 12 people have their first priorities met and only two have none at all.  Of course the extra time and cost in allowing four selected topics has to be balanced against the improved satisfaction metrics.
 
 
 \newpage
 
-# Appendix
+# Appendix 1 - Raw Data
+The raw data is summarised in the following table.  Each respondent provided a priority 1 to 3 for each topic.  The subject of each topic is defined in a separate table.
+
 ```{r}
 response_data[is.na(response_data)] <- ""
 kable(response_data, align=rep("c", ncol(response_data)))
 kable(topic_data)
+```
+
+This data is stored in an excel file with two sheets.  The data can be edited in the excel sheet and the analysis re-run.
+
+\newpage
+
+# Appendix 2 - Analysis code
+
+In the code below, the variable *number_to_select* refers to how many topics will be chosen to be taken forward for policy analysis. For the bulk of the analysis, this is set at 3, however some effects are shown for a value of 4.
+
+The following code provides the main calculations and analysis:
+
+```{r calcscore2,ref.label="calcscore", eval=FALSE, echo=TRUE}
+```
+
+The bar plot showing the overall topic scores is produced with the following:
+
+```{r plotscores2,ref.label="plotscores", eval=FALSE, echo=TRUE}
+```
+
+The plot of each respondent's preference, ordered by satisfaction is:
+
+```{r plotresponses2,ref.label="plotresponses", eval=FALSE, echo=TRUE}
 ```
