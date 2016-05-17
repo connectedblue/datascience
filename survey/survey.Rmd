@@ -102,11 +102,13 @@ calculate_scores <- function(number_to_select=4, force_swap=NULL) {
         
         # Calculate the satisfaction for each respondent against the selected most
         # popular topics
-        survey <- survey %>% mutate(satisfaction=score^2*weight)
+        survey <- survey %>% mutate(topic_satisfaction=score^2*weight)
         
         resp <- survey %>% group_by(RespondentID) %>% 
-                summarise(satisfaction=sum(satisfaction)) %>%
+                summarise(satisfaction=sum(topic_satisfaction)) %>%
                 arrange(satisfaction)
+        
+        survey <- merge(survey, resp, by="RespondentID")
         
         resp<<-resp
         topic_scores<<-topic_scores
@@ -162,14 +164,14 @@ The responses are arranged in order of satisfaction.  Those responses to the far
 plot_responses <- function (number_to_select) {
 
 ggplot(survey, aes(x=RespondentID, y=topic)) + 
-        geom_point(size=sqrt(survey$score)*1.5, colour="blue") + 
+        geom_point(size=sqrt(survey$score)*1.5, 
+                   colour=ifelse(survey$satisfaction == 0,'orange','blue')) + 
         scale_y_discrete(limits=topic_scores$topic,
                          labels=ylabels) +
-        ylab("") + xlab("") +
+        ylab("") + xlab("Respondent") +
         scale_x_discrete(limits=resp$RespondentID) +
         theme(panel.grid.minor=element_blank(), 
               panel.grid.major=element_blank(),
-              axis.text.x = element_blank(),
               axis.text.y = element_text(hjust=0)) +
         geom_hline(yintercept = nrow(topic_scores) - number_to_select + 0.5,
                    linetype="dashed") +
