@@ -133,13 +133,15 @@ The plot below shows the overall scores for each survey topic.  There are two cl
 ```{r plotscores}
 plot_topic_score <- function(){
         ggplot(topic_scores, aes(x=topic, y=topic_score)) + 
-        geom_bar(stat="identity") + 
+        geom_bar(stat="identity", 
+                 fill=ifelse(topic_scores$weight == 1,'mediumblue', 'black')) + 
         scale_x_discrete(limits=topic_scores$topic,
                          labels=ylabels) +
         ylab("") + xlab("") +
         theme(panel.grid.minor=element_blank(), 
               panel.grid.major=element_blank(),
-              axis.text.x = element_text(angle = 90,  hjust=0, vjust=0.5)) 
+              axis.text.x = element_text(angle = 90,  hjust=0, vjust=0.5,
+                            face=ifelse(topic_scores$weight == 0,'plain','bold'))) 
 }
 ```
 
@@ -165,14 +167,16 @@ plot_responses <- function (number_to_select) {
 
 ggplot(survey, aes(x=RespondentID, y=topic)) + 
         geom_point(size=sqrt(survey$score)*1.5, 
-                   colour=ifelse(survey$satisfaction == 0,'orange','blue')) + 
+                   colour=ifelse(survey$satisfaction == 0,'orange',
+                                 ifelse(survey$weight == 1,'mediumblue', 'royalblue'))) + 
         scale_y_discrete(limits=topic_scores$topic,
                          labels=ylabels) +
         ylab("") + xlab("Respondent") +
         scale_x_discrete(limits=resp$RespondentID) +
         theme(panel.grid.minor=element_blank(), 
               panel.grid.major=element_blank(),
-              axis.text.y = element_text(hjust=0)) +
+              axis.text.y = element_text(hjust=0,
+                            face=ifelse(topic_scores$weight == 0,'plain','bold'))) +
         geom_hline(yintercept = nrow(topic_scores) - number_to_select + 0.5,
                    linetype="dashed") +
         geom_vline(xintercept = nrow(resp[resp$satisfaction==0,])+0.5,
