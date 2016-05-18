@@ -1,10 +1,9 @@
 ---
 title: "Analysing survey data in Public Health"
-author: "Chris Shaw"
-date: "12 May 2016"
+author: ""
+date: "17 May 2016"
 output: pdf_document
-header-includes:
- - \usepackage{amsmath}
+header-includes: \usepackage{amsmath}
 ---
 
 ```{r setup, include=FALSE, echo=FALSE}
@@ -17,42 +16,9 @@ library(knitr)
 library(stringr)
 ```
 
-# Introduction
-
-Surveys are an essential part of policy making in Public Health.  Limited resources have to be allocated to deliver the maximum outcomes.  Conducting a survey across a wide spectrum of public health professionals is a valuable way to gather prevailing information and prioritise policy areas to address.
-
-This paper examines effective ways to analyse and present survey data to support the decision making process about areas to concentrate on.
-
-# Raw survey data
-
-The appendix shows a simulated survey with 10 questions and 19 responses.  The raw data is captured in an excel spreadsheet in a tabulated manner.  The topics are the column headings.  Each row corresponds to one response.  The participant's topic preferences are indicated by a number - 1 being the highest preference.  Only three preferences are allowed per reponse in strict order.
-
-The analysis will work on any number of topic colums, responses or preference choices.
-
-# Analysis
-
-The first task is to calculate a score for each topic as follows:
-
-$$\sum\limits_{\{n_i\}} (4-p_i)^2$$
-
-where $\{n_i\}$ is the subset of respondents who voted for that subject and $p_i$ is their individual priority for each topic (1 being the highest and 3 the lowest).
-
-Once the score is calculated for each topic, the top three topics can be determined easily.  However, as a second part of the analysis, we want to understand how well individual preferences are served by the top three.  In other words, we want a sense of individual satisfaction with the outcome.  This can be measured for each respondent by calculating
-
-
-$$
-\sum\limits_{i=1}^{i=3} T_is_i^2 \qquad \text{where $s_i$ is the topic score and } T_i=
-  \begin{cases}
-    1 & \text{if that topic is in the top three}.\\
-    0 & \text{otherwise}.
-  \end{cases}
-$$
-
-
-
 
 ```{r loaddata }
-xlsfile="surveydata.xlsx"
+xlsfile="anondata2.xlsx"
 
 ```
 
@@ -95,7 +61,7 @@ calculate_scores <- function(number_to_select=4, force_swap=NULL) {
         
         # Add the topic descriptions
         topic_scores <- merge(topic_scores, topic_data, by="topic")
-        topic_scores <- arrange(topic_scores, topic_score)
+        topic_scores <- arrange(topic_scores, weight, topic_score)
         
         # Mix the weights into the survey data
         survey <- merge(survey, topic_scores, by="topic")
@@ -109,57 +75,84 @@ calculate_scores <- function(number_to_select=4, force_swap=NULL) {
                 arrange(satisfaction)
         
         survey <- merge(survey, resp, by="RespondentID")
+
+        # Create the topic labels with the subject of each topic suitably word wrapped
+        ylabels <- str_wrap(as.vector(topic_scores$subject), width = 30)
+        names(ylabels)<-topic_scores$topic
         
         resp<<-resp
         topic_scores<<-topic_scores
         survey<<-survey
+        ylabels <<- ylabels
 }
 ```
 
 ```{r calc3}
-calculate_scores(3)
+calculate_scores(2)
 
-# Create the topic labels with the subject of each topic suitably word wrapped
-ylabels <- str_wrap(as.vector(topic_scores$subject), width = 25)
-names(ylabels)<-topic_scores$topic
 ```
 
-\newpage
+# Exploring the data
 
-## Overall topic scores
+A survey was conducted amongst `r nrow(resp)` public health professionals about which topics they would like discussed at the IPAT meeting.  
 
-The plot below shows the overall scores for each survey topic.  There are two clear winners at the right hand side and clearly the topics on the far left are not so popular.  
+Each respondent selected 3 from `r nrow(topic_data)` topics in order of preference - 1 being the first priority.  The plot below shows how each respondent voted for each topic.
+
+```{r plotraw}
+topic_scores<-arrange(topic_scores, desc(topic))
+resp<-arrange(resp, RespondentID)
+ylabels <- str_wrap(as.vector(topic_scores$subject), width = 30)
+        names(ylabels)<-topic_scores$topic
+ggplot(survey, aes(x=RespondentID, y=topic)) + 
+        geom_point(size=sqrt(survey$score)*1.5, 
+                   colour='mediumblue') + 
+        scale_y_discrete(limits=topic_scores$topic,
+                         labels=ylabels) +
+        ylab("") + xlab("Respondent identifier") +
+        scale_x_discrete(limits=resp$RespondentID) +
+        theme(panel.grid.minor=element_blank(), 
+              panel.grid.major=element_blank(),
+              panel.background = element_rect(fill = "cornsilk"),
+              panel.border = element_rect(fill="transparent", colour="black")) +
+        ggtitle("Raw survey response data")
+ggsave("rawsurveydata.png", width=6, height=4)
+calculate_scores(2)
+```
+
+Each respondent has been assigned a letter so they can be identified during the analysis. The size of dot indicates the priority for that respondent.  Reading up and down each column will reveal the choice each respondent made.  Scanning across each row will indicate the overall feeling for that topic.
+
+In this raw state, we can glean some limited information from the data.  For example, we can see that *`r topic_data$subject[4]`* has a lot of priority 1 votes, while *`r topic_data$subject[9]`* was not all that popular.  Otherwise, it is hard to tell which topics should be selected, and the impact of that decision.
+
+Further insight can be gained by re-arranging the plot data as follows:
+
+ * order the topics from top to bottom according to overall popularity, with the most popular at the top and the least at the bottom.
+ * draw a cut-off line depending on how many topics can be realistically prepared for in advance of the IPAT meeting.  Topics above the line will be taken forward, topics below the line will not.
+ * calculate how satisified respondents are about the selected topics.  Re-arrange the respondents on the horizontal axis in order of satisfaction, with the least satisfied on the left hand side and the most satisifed on the right.
+ 
+Following this approach will allow two conclusions to be drawn.  Firstly, how well the selected topics match the overall preferences and secondly, those respondents who are not satisfied with the outcome.
+
+# Most popular topics
+
+The first job is to calculate a score for each topic based on the aggregate priorities of those who voted for that topic.  The plot below shows the overall scores for each survey topic.  The score has been calculated to reflect accurately the first, second and third preferences of the survey respondents.
+
+There are two clear winners at the right hand side and clearly the topics on the far left are not so popular.  
 
 ```{r plotscores}
 plot_topic_score <- function(){
         ggplot(topic_scores, aes(x=topic, y=topic_score)) + 
         geom_bar(stat="identity", 
-                 fill=ifelse(topic_scores$weight == 1,'mediumblue', 'black')) + 
+                 fill=ifelse(topic_scores$weight == 1,'mediumblue', 'royalblue')) + 
         scale_x_discrete(limits=topic_scores$topic,
                          labels=ylabels) +
         ylab("") + xlab("") +
         theme(panel.grid.minor=element_blank(), 
               panel.grid.major=element_blank(),
+              panel.background = element_rect(fill = "cornsilk"),
+              panel.border = element_rect(fill="transparent", colour="black"),
               axis.text.x = element_text(angle = 90,  hjust=0, vjust=0.5,
                             face=ifelse(topic_scores$weight == 0,'plain','bold'))) 
 }
 ```
-
-```{r plottopic}
-
-plot_topic_score()+ggtitle("Topic scores across all respondents")
-```
-
-However it is not at all clear whether the fourth most popular topic \textit{`r ylabels[7]`} should be selected over the third - the scores are very close.  
-
-\newpage
-
-## Satisfaction
-
-The plot below shows every response across all topics.  Each response is shown along the horizontal axis.  Every response has three topics selected.  The larger the dot, the higher the priority is for that respondent.
-
-The responses are arranged in order of satisfaction.  Those responses to the far right are in general more satisfied with the outcome.
-
 
 
 ```{r plotresponses}
@@ -168,13 +161,15 @@ plot_responses <- function (number_to_select) {
 ggplot(survey, aes(x=RespondentID, y=topic)) + 
         geom_point(size=sqrt(survey$score)*1.5, 
                    colour=ifelse(survey$satisfaction == 0,'orange',
-                                 ifelse(survey$weight == 1,'mediumblue', 'royalblue'))) + 
+                                 ifelse(survey$weight == 1,'mediumblue', 'mediumblue'))) + 
         scale_y_discrete(limits=topic_scores$topic,
                          labels=ylabels) +
-        ylab("") + xlab("Respondent") +
+        ylab("") + xlab("Respondent identifier") +
         scale_x_discrete(limits=resp$RespondentID) +
         theme(panel.grid.minor=element_blank(), 
               panel.grid.major=element_blank(),
+              panel.background = element_rect(fill = "cornsilk"),
+              panel.border = element_rect(fill="transparent", colour="black"),
               axis.text.y = element_text(hjust=0,
                             face=ifelse(topic_scores$weight == 0,'plain','bold'))) +
         geom_hline(yintercept = nrow(topic_scores) - number_to_select + 0.5,
@@ -184,39 +179,103 @@ ggplot(survey, aes(x=RespondentID, y=topic)) +
 }
 ```
 
-```{r plot3}
-plot_responses(3) + ggtitle("Distribution of responses, ordered by satisfaction")
+
+
+
+
+
+```{r plottopic}
+
+plot_topic_score()+ggtitle("Overall Topic scores")
+ggsave("TopicScores-bar.png", width=6, height=4)
 ```
 
+However it is not at all clear what the differences are between the next three most popular topics - the scores are very close.
 
-We can see that nine respondents had one of the top three topics as their top priority, and a further five had their second choice.  Only three respondents had none of their topics at all selected.
-
-A judgement call can be made whether the score for \textit{`r ylabels[8]`} is really justified over the next one.  For example, \textit{`r ylabels[7]`} has three first choice preferences over two for the other (but chosen less overall).  The final choice rests with the policy analyst who will use her skill and judgement to make the recommendation.
-
-\newpage
-If a decision is made to swap out topic 4 for topic 3, we can re-plot the data to see the effect of this:
-
-```{r plot3forceswap}
-calculate_scores(3, c(8,7))
-plot_responses(3) + ggtitle("Effect of force swapping topic 4 for topic 3")
-```
-
-We can see that now 6 people have not had their preferences satisfied, even though 10 first choices are now included.  So, although the overall topic scores are close, the algorithm selected the approach which maximises the satisfaction across all respondents.
-
-It would be a brave policy analyst who swims against the tide of data analysis.
 
 \newpage
 
-## Allowing more topics to be selected
+# Implications of selecting just two topics
 
-Finally, an analysis can be made to see what would happen if four topics were to be selected rather than three.  The plot below shows how satisfaction changes by allowing one more topic to be included.
-```{r plot4}                
+
+In this section we draw the cut-off line after the second most popular topic.  We also re-order the respondents according to their satisfaction with this.  This results in the distribution below.
+
+
+```{r plot3, message=FALSE}
+plot_responses(2) + ggtitle("Top Two topics")
+ggsave("Top2topics-dotplot.png", width=6, height=4)
+```
+
+Those votes marked in orange show those respondents who didn't get any of their preferences selected.
+
+We can see that 17 respondents had at least one of their topics selected in the top two topics.  Only two respondents had none of their topics chosen.
+
+Furthermore, 11 of the respondents have had their first choice included.  Respondents e, a, g, i, j and p didn't get their first choice, however they have some of their other choices selected.  Respondents c and h are the least satisfied.
+
+
+\newpage
+
+# Options for including a third topic
+
+Because of the close nature of the next three popular topics, we need to look more closely at the effect of including each one as the third choice.  These three options are presented below.
+
+## Option (a)
+
+```{r plot3forceswap1}
+calculate_scores(3)
+plot_responses(3) + ggtitle("Top Three topics")
+ggsave("Top3topics-optiona.png", width=6, height=4)
+```
+
+Although two respondents still don't have any of their topics selected, there are now only 6 respondents who didn't get their first choice (and of those, 4 had at least one of their other choice in the cut.)
+
+## Option (b)
+
+```{r plot3forceswap2}
+calculate_scores(3, c(7,6))
+plot_responses(3) + ggtitle("Top Three topics")
+ggsave("Top3topics-optionb.png", width=6, height=4)
+```
+
+
+This has a similar impact to option (a) - six priority 1 items didn't make the cut and a couple of people still have nothing.
+
+## Option (c)
+
+```{r plot3forceswap3}
+calculate_scores(3, c(7,5))
+plot_responses(3) + ggtitle("Top Three topics")
+ggsave("Top3topics-optionc.png", width=6, height=4)
+```
+
+This is very interesting - no orange dots!  This means that every single respondent has at least one of their choices included if these three topics are chosen.
+
+This looks a good option to choose if it is possible to take three topics forward to the IPAT meeting.
+
+\newpage
+
+# Top Four topics
+
+In the event that four topics can be presented, there are a couple of options for topic number 4
+
+
+## Option (d)
+
+```{r plot4a}
 calculate_scores(4)
-plot_responses(4) + ggtitle("Distribution of responses when four topics are allowed")
+plot_responses(4) + ggtitle("Top Four topics")
+ggsave("Top4topics-optiond.png", width=6, height=4)
 ```
 
-Now 12 people have their first priorities met and only two have none at all.  Of course the extra time and cost in allowing four selected topics has to be balanced against the improved satisfaction metrics.
+## Option (e)
 
+```{r plot4forceswap4}
+calculate_scores(4, c(6,5))
+plot_responses(4) + ggtitle("Top for topics - option (e)")
+ggsave("Top3topics-optione.png", width=6, height=4)
+```
+
+Again, with this option we can see all respondents would be satisfied with these choices.
 
 \newpage
 
