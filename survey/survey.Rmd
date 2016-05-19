@@ -173,8 +173,6 @@ ggplot(survey, aes(x=RespondentID, y=topic)) +
               axis.text.y = element_text(hjust=0,
                             face=ifelse(topic_scores$weight == 0,'plain','bold'))) +
         geom_hline(yintercept = nrow(topic_scores) - number_to_select + 0.5,
-                   linetype="dashed") +
-        geom_vline(xintercept = nrow(resp[resp$satisfaction==0,])+0.5,
                    linetype="dashed")
 }
 ```
