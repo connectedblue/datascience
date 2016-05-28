@@ -1,0 +1,91 @@
+---
+title: "Obtaining population data"
+author: "Chris Shaw"
+date: "28 May 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+
+# Population data
+
+This file downloads detailed US population data by year state and age group from:
+
+<http://seer.cancer.gov/popdata/download.html>
+
+This is a large dataset which is then processed to obtain relevant summarised datasets:
+
+* population of each state by year
+
+The raw data is obtained from the url if it doesn't already exist:
+
+```{r download, cache=TRUE}
+
+filename<-"us.1969_2014.19ages.adjusted.txt.gz"
+data_url <-"http://seer.cancer.gov/popdata/yr1969_2014.19ages/us.1969_2014.19ages.adjusted.txt.gz"
+
+if (!file.exists(filename)){
+        download.file(data_url, filename)
+}
+
+# Load data and rename data column to something more friendly
+#
+raw_data<-read.table(filename, stringsAsFactors = F)
+names(raw_data)[1]<-"raw"
+head(raw_data)
+
+```
+
+The adjusted dataset is used which takes into account the population shifts in certain states following hurricane Katrina.
+
+From time to time the data sets are updated - check and change the data_url above to get the latest data
+
+It can be seen that the raw data is compacted into just one column.  The next section parses and summarises this column.
+
+\newpage 
+
+# Data format
+
+The format of this data is described here:
+
+<http://seer.cancer.gov/popdata/popdic.html>
+
+The key elements needed for this module are:
+
+\begin{center}
+    \begin{tabular}{ | l | l | l | p{5cm} |}
+    \hline
+    Field & Start Col & End Col & Data Type \\ \hline
+    Year & 1 & 4 & numeric  \\ \hline
+    State & 5 & 6 & char  \\ \hline
+    Population & 19 & 26 & numeric  \\ \hline
+    \end{tabular}
+\end{center}
+
+
+
+
+The following code extracts the relevant columns and caches the results.
+
+```{r parse, cache=TRUE}
+raw_data$year<-as.numeric(substr(raw_data$raw, 1,4))
+raw_data$state<-as.character(substr(raw_data$raw, 5,6))
+raw_data$population<-as.numeric(substr(raw_data$raw, 19,26))
+
+```
+
+# Create a new dataset
+
+In this case we just want population  per state per year:
+
+```{r summarise}
+
+summary <- raw_data %>% group_by(year, state) %>% summarise(population=sum(population))
+
+# write out as a csv
+write.table(summary, "states.csv", sep=",", row.names = F)
+```
+
