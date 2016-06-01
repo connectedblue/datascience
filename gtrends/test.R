@@ -1,8 +1,18 @@
 library(gtrendsR)
+library(dplyr)
+
+
+data(countries)
+
+states<-countries %>% filter(country=="United States") %>% select(subcode)
+
+
 
 ch <- gconnect("notes@evercam.co.uk", "nIQpfUwq9GvbXFBblEVh")
 
-x<-gtrends(c("How to smoke salmon"), c("US-OR", "US-AK"), type="trends")
+sublist<-states$subcode[2]
+
+x<-gtrends(c("where is the internet"), geo=sublist, start_date = "2007-01-01")
 
 
 df<-x$trend

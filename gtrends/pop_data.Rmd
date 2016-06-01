@@ -51,7 +51,7 @@ It can be seen that the raw data is compacted into just one column.  The next se
 
 The format of this data is described here:
 
-<http://seer.cancer.gov/popdata/popdic.html>
+http://seer.cancer.gov/popdata/popdic.html
 
 The key elements needed for this module are:
 
