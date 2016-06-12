@@ -6,13 +6,15 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
 knitr::opts_chunk$set(fig.width = 5, fig.height = 3.5, fig.align = "center")
 knitr::knit_hooks$set(inline = function(x) {
   prettyNum(x, big.mark=",")
 })
 
 library(knitr)
+library(plyr)
+
 data("mtcars")
 ```
 
@@ -25,5 +27,157 @@ Motor Trend magazine have requested an analysis of the relationship between a se
 
 The analysis is based on a data set of a collection of cars, summarised in the appendix.
 
-We conclude that manual transmission is better for MPG, especially when considered 
+We conclude that manual transmission is better for MPG, especially when considered alongside vehicle weight and horsepower.  For a car of average weight and horsepower, we expect an increase of 2.1 MPG by moving transmission to manual.  On the other hand, MPG decreases by 0.3 for each additional 100lb of weight and by 0.4 for each addtional 10 horsepower.
+
+# Exploratory analysis
+
+```{r summarise_data}
+# save raw data for printing later
+raw_data<-mtcars
+
+# adjust for factor variables
+mtcars$cyl <- factor(mtcars$cyl)
+mtcars$am <- factor(mtcars$am)
+mtcars$gear <- factor(mtcars$gear)
+mtcars$carb <- factor(mtcars$carb)
+mtcars$vs <- factor(mtcars$vs)
+
+# Add quantiles for hp and weight
+mtcars <- within(mtcars, wt_qt<-as.integer(cut(wt, 
+                        quantile(wt, probs=0:4/4), include.lowest=TRUE)))
+mtcars <- within(mtcars, hp_qt<-as.integer(cut(hp, 
+                        quantile(hp, probs=0:4/4), include.lowest=TRUE)))
+
+# Textual description of transmission
+mtcars$am_txt<-ifelse(mtcars$am==1, "Manual", "Automatic")
+
+# adjust for average weight and horsepower
+
+#mtcars$wt  <- mtcars$wt - mean(mtcars$wt)
+#mtcars$hp  <- mtcars$hp - mean(mtcars$hp)
+
+summ <- function(grp, hdg){
+        dd<- ddply(mtcars, grp, summarise, 
+                        N=length(mpg), 
+                        mean_mpg=round(mean(mpg),3), 
+                        std_mpg=round(sd(mpg),3))
+        names(dd) <- c(hdg, c("Num Cars", "Mean mpg", "Std dev"))
+        dd
+}
+
+mean_am<-summ(c("am_txt"), c("Type"))
+mean_am_hp<-summ(c("am_txt", "hp_qt"), c("Type", "Horsepower quantile"))
+mean_am_wt<-summ(c("am_txt", "wt_qt"), c("Type", "Weight quantile"))
+mean_am_cyl<-summ(c("am_txt", "cyl"), c("Type", "Number of cylinders"))
+
+```
+
+Summarising the data set gives an insight into how the mean MPG changes when compared to different variables.  At a high level, the overall means for manual and automatic are as follows:
+
+```{r means_1}
+kable(mean_am)
+```
+
+If we group the vehicles by horsepower quantiles (1 being the <25% quantile and 4 being >75%), it can be seen that there is a sizeable increase in the mean in each category when going from automatic to manual:
+```{r means_2}
+kable(mean_am_hp)
+```
+
+However, when the cars are grouped by number of cylinders, there is a much more modest increase for 6 and 8 cylinder cars moving from automatic to manual.
+
+```{r means_3}
+kable(mean_am_cyl)
+```
+
+We need to build a more sophisticated model to understand how each variable contributes to changes in MPG.
+
+# Regression model
+
+The first task was to transform the data so that the weight, horsepower, quarter mile time, displacement and rear axle ratio of centred around the mean.  This makes interpreting the co-efficients in the model easier.
+
+```{r transform}
+# adjust for average weight and horsepower and qsec
+
+mtcars$wt  <- mtcars$wt - mean(mtcars$wt)
+mtcars$hp  <- mtcars$hp - mean(mtcars$hp)
+mtcars$qsec  <- mtcars$qsec - mean(mtcars$qsec)
+mtcars$disp  <- mtcars$disp - mean(mtcars$disp)
+mtcars$drat  <- mtcars$drat - mean(mtcars$drat)
+
+# Fit nest linear models with am and additional co-variates to judge effects
+
+reg_lm<-function(f){
+        lm<-lm(f, mtcars)
+        lm
+}
+
+# What does am look like on its own
+
+fit_am <- reg_lm(mpg ~ am)
+
+# Test which co-variates go best with am
+#                                       Yes/No indicates whether both am + the co-variate
+#                                       are significant (based on Anova table)
+
+fit_am_gear <- reg_lm(mpg ~ am + gear)  # No
+fit_am_carb <- reg_lm(mpg ~ am + carb)  # Yes   resid ms 12.52
+fit_am_wt <- reg_lm(mpg ~ am + wt)      # Yes   resid ms  9.6
+fit_am_disp <- reg_lm(mpg ~ am + disp)  # Yes   resid ms 10.35    
+fit_am_qsec <- reg_lm(mpg ~ am + qsec)  # Yes   resid ms 12.16
+fit_am_cyl <- reg_lm(mpg ~ am + cyl)    # Yes   resid ms  9.45
+fit_am_hp <- reg_lm(mpg ~ am + hp)      # Yes   resid ms  8.46
+fit_am_drat <- reg_lm(mpg ~ am + drat)  # No
+fit_am_vs <- reg_lm(mpg ~ am + vs)      # yes   resid ms  12.19
+
+#  Conclusion:  wt, cyl and hp seem most significant
+
+# Perform some nested hypothesis tests
+
+mss_table<-data.frame(Formula=c('mpg ~ am + wt', 'mpg ~ am + cyl', 'mpg ~ am + hp'),
+                      `Residual MSS`=c(anova(fit_am_wt)$`Mean Sq`[3],
+                                       anova(fit_am_cyl)$`Mean Sq`[3],
+                                       anova(fit_am_hp)$`Mean Sq`[3]))
+
+
+# Selected model ...
+
+fit_am_wt_hp <- reg_lm(mpg ~ am + wt + hp)      # yes   resid ms  6.44
+
+fit_am_wt_hp_rmss<-anova(fit_am_wt_hp)$`Mean Sq`[4]
+conf_int<-(cbind(confint(fit_am_wt_hp), Model_coef=coef(fit_am_wt_hp)))
+
+```
+We fitted a number of models of the form $mpg \sim am + var$ where $var$ was each of the 9 other variables in turn.  The most promising combinations which left the smallest residual mean square are:
+
+```{r msstable}
+kable(mss_table)
+```
+
+Further analysis showed that $cyl$ didn't really add more to the model than $hp$, which is to be expected since those variables are somewhat dependent on each other.  We were able to improve the residuals by including a third term.  The final selected model was $mpg \sim am + wt + hp$ which produced a residual mean square of `r round(fit_am_wt_hp_rmss,3)`.  The table of co-efficients and the confidence interval are:
+
+```{r finalmodel}
+kable(conf_int)
+```
+
+The Model_coef value for the Intercept shows that the mean MPG for a manual car of average weight and horsepower is `r round(conf_int[[4,1]], 2)`.  19.24.  The co-efficients for the other terms in the model show the relative increase or decrease per unit increase in the associated variable.
+
+The confidence interval for weight and horsepower confirms the negative adjustment to MPG 95% of the time.  However, it can be seen that the lower bound for the transmission interval could be negative.  This needs further investigation.
+
+The plots in the appendix show the diagnostics for this selected model.  The QQ plot is along the expected line, indicating that the errors are guassian.  Furthermore, the residuals plot shows the Cook distance is less than 0.5 for all data points
+
+\newpage
+
+# Appendix
+
+## Dataset
+
+```{r dataset}
+kable(raw_data)
+```
+
+##  Residual plots
+
+plot(fit_am_wt_hp)
+
+
 
