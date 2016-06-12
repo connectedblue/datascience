@@ -27,7 +27,7 @@ Motor Trend magazine have requested an analysis of the relationship between a se
 
 The analysis is based on a data set of a collection of cars, summarised in the appendix.
 
-We conclude that manual transmission is better for MPG, especially when considered alongside vehicle weight and horsepower.  For a car of average weight and horsepower, we expect an increase of 2.1 MPG by moving transmission to manual.  On the other hand, MPG decreases by 0.3 for each additional 100lb of weight and by 0.4 for each addtional 10 horsepower.
+We conclude that manual transmission is better for MPG, especially when considered alongside vehicle weight and horsepower.  For a car of average weight and horsepower, we expect an increase of 2.1 MPG by moving transmission to manual.  On the other hand, MPG decreases by about 0.3 for each additional 100lb of weight and by about 0.4 for each addtional 10 horsepower.
 
 # Exploratory analysis
 
@@ -144,7 +144,9 @@ mss_table<-data.frame(Formula=c('mpg ~ am + wt', 'mpg ~ am + cyl', 'mpg ~ am + h
 fit_am_wt_hp <- reg_lm(mpg ~ am + wt + hp)      # yes   resid ms  6.44
 
 fit_am_wt_hp_rmss<-anova(fit_am_wt_hp)$`Mean Sq`[4]
-conf_int<-(cbind(confint(fit_am_wt_hp), Model_coef=coef(fit_am_wt_hp)))
+conf_int<-cbind(round(confint(fit_am_wt_hp),3), Model_coef=round(coef(fit_am_wt_hp),3),
+                 Interpretation=c( "Manual mean", "Increase for automatic",
+                   "0.29 decrease per 100lb increase", "0.37 decrease per 10 increase"))
 
 ```
 We fitted a number of models of the form $mpg \sim am + var$ where $var$ was each of the 9 other variables in turn.  The most promising combinations which left the smallest residual mean square are:
@@ -159,11 +161,11 @@ Further analysis showed that $cyl$ didn't really add more to the model than $hp$
 kable(conf_int)
 ```
 
-The Model_coef value for the Intercept shows that the mean MPG for a manual car of average weight and horsepower is `r round(conf_int[[4,1]], 2)`.  19.24.  The co-efficients for the other terms in the model show the relative increase or decrease per unit increase in the associated variable.
+The Model_coef value for the Intercept shows that the mean MPG for a manual car of average weight and horsepower is 19.24.  The co-efficients for the other terms in the model show the relative increase or decrease per unit increase in the associated variable.
 
 The confidence interval for weight and horsepower confirms the negative adjustment to MPG 95% of the time.  However, it can be seen that the lower bound for the transmission interval could be negative.  This needs further investigation.
 
-The plots in the appendix show the diagnostics for this selected model.  The QQ plot is along the expected line, indicating that the errors are guassian.  Furthermore, the residuals plot shows the Cook distance is less than 0.5 for all data points
+The plots in the appendix show the diagnostics for this selected model.  The residuals plot against fitted values shows a nice randome scattering.  The QQ plot is along the expected line, indicating that the errors are guassian.  Finally, the residuals plot shows the Cook distance is less than 0.5 for all data points, meaning no point has undue influence or leverage over the model.
 
 \newpage
 
@@ -177,7 +179,8 @@ kable(raw_data)
 
 ##  Residual plots
 
+```{r plots}
 plot(fit_am_wt_hp)
-
+```
 
 
