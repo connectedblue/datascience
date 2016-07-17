@@ -3,8 +3,7 @@ title: "Analysis of the Exponential distribution using simulation"
 author: "Chris Shaw"
 date: "23 April 2016"
 output: pdf_document
-header-includes:
-        - \setmainfont{stix}
+
 ---
 
 ```{r setup, include=FALSE}
