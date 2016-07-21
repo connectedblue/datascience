@@ -4,8 +4,8 @@ cache_loading: TRUE
 recursive_loading: FALSE
 munging: TRUE
 logging: FALSE
-load_libraries: FALSE
-libraries: dplyr, ggplot2, caret
+load_libraries: TRUE
+libraries: dplyr, ggplot2, caret, doParallel
 as_factors: TRUE
 data_tables: FALSE
 attach_internal_libraries: FALSE

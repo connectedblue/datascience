@@ -61,9 +61,10 @@ nona<-sapply(names(clean_training), function(x)
         ifelse(sum(is.na(clean_training[,x]))==0,TRUE,FALSE))
 # and filter only those ones
 clean_training <- clean_training[, nona]
+rm(nona)
 
 # Split the training set into a testing and training set for the modelling
-
+set.seed(1234)
 inTrain <- createDataPartition(y=clean_training$classe, p=0.7, list=FALSE)
 training<-clean_training[inTrain,]
 testing<-clean_training[-inTrain,]
