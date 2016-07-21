@@ -1,6 +1,6 @@
 # Preprocess the raw data
 
-# cache the raw data
+# cache the raw data 
 cache('pml.testing')
 cache('pml.training')
 
@@ -16,7 +16,7 @@ clean<- function(dataset){
         # timestamp is col 3 + col 4/1000000
         # Don't need columns 5,6 and 7
         identifiers <- dataset[,1:2]
-        identifiers$timestamp <- round(dataset[,3] + dataset[,3]/1000000, 6)
+        identifiers$timestamp <- round(dataset[,3] + dataset[,4]/1000000, 6)
         
         # isolate the middle columns 8-159 which are the measurement values
         measurement <- dataset[,8:159]
@@ -27,23 +27,53 @@ clean<- function(dataset){
                 measurement[[col]] <- as.numeric(as.character(measurement[[col]]))
         }
         
-        
         # Return a cleaned dataframe
         cbind(identifiers, measurement, classe)
 }
 
 
-# create new training data which is cleaned up
+# create new training and test data which is cleaned up
 clean_training <- clean(pml.training)
+clean_testing <- clean(pml.testing)
 
+# Create a summary table of the training data showing
+# when each exercise was performed, how long each took, 
+# and how many samples were collected
+
+training_summary<-aggregate( timestamp~user_name+classe, 
+                             data=clean_training, 
+                             function(x) c(start = min(x), 
+                                           stop = max(x), samples=length(x)))
+tmp<-cbind(training_summary[,1:2], data.frame(training_summary[,3]))
+training_summary<-tmp
+rm(tmp)
+training_summary$exercise_time<-training_summary$stop-training_summary$start
+training_summary$start_time<-as.POSIXlt(training_summary$start, origin = "1970-01-01", tz = "UTC")
+training_summary<-training_summary[with(training_summary,order(start)),]
+
+# Reduce down the training set further for analysis
+
+# Remove the identifier columns - not relevant for the prediction modelling
+clean_training<-clean_training[,-(1:3)]
+
+# identify which measurement columns do not have any NA values
+nona<-sapply(names(clean_training), function(x) 
+        ifelse(sum(is.na(clean_training[,x]))==0,TRUE,FALSE))
+# and filter only those ones
+clean_training <- clean_training[, nona]
+
+# Split the training set into a testing and training set for the modelling
+
+inTrain <- createDataPartition(y=clean_training$classe, p=0.7, list=FALSE)
+training<-clean_training[inTrain,]
+testing<-clean_training[-inTrain,]
+rm(inTrain)
+
+
+# Following lines not used ....
 # remove any near zero variance columns
-
+# measurement<-predict(preProcess(measurement, method = "nzv"), measurement)
 # nzv<-nearZeroVar(measurement)
 # measurement<-measurement[,-nzv]
-# measurement<-predict(preProcess(measurement, method = "nzv"), measurement)
 
 
-
-times<-aggregate( timestamp~user_name+classe, data=clean_training, function(x) c(min = min(x), max = max(x) ) )
-times$exercise_time<-times$timestamp[,2]-times$timestamp[,1]
-times<-times[with(times,order(user_name, classe)),]
