@@ -8,17 +8,19 @@ The data is specified in the data directory as a url.  It is cached straightaway
 The preprocessing of the data sets takes place in:
         01-A.R
         
-There are 2 analysis files
+There are 3 analysis files
 
         eda.R   -       an early script exploring the data.  Most of the ideas here
                         ended up in 01-A.R, so this is not very relevant
                         
-        model.R -       The random forest model is developed and the answers derived
+        rf-model.R -    The random forest model is developed and the answers derived
                         to submit to the automated quiz
+                        
+        tree-model.R -  A model using rpart is developed (terrible performance)
                         
 Note:
 
-The model.R file uses parallel processing to speed up the random forest (4 cores on my machine).  When package dplyr is loaded (like in eda.R) the combine method is masked and it screws up the parallel processing (the foreach function has a combine function to put together the model from each of the cores)
+The rf-model.R file uses parallel processing to speed up the random forest (4 cores on my machine).  When package dplyr is loaded (like in eda.R) the combine method is masked and it screws up the parallel processing (the foreach function has a combine function to put together the model from each of the cores)
 
 If dplyr is needed, it'll have to be unloaded before the model.R file runs.
 

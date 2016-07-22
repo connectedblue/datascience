@@ -6,6 +6,8 @@ cache('pml.training')
 
 # dataset cleaning function
 
+## ---- munge
+
 clean<- function(dataset){
         
         # save the response in it's own variable
