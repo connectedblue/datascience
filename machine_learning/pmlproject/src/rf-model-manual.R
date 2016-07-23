@@ -21,7 +21,7 @@ mod <- foreach(ntree=rep(400, 4), .combine=combine, .multicombine=TRUE,
 # Show the training result as a confusion matrix
 training_result<-confusionMatrix(mod$predicted, training$classe)
 
-print(result)
+print(training_result)
 
 # Run the model against the testing set
 testing_prediction<-predict(mod, testing)
@@ -29,4 +29,4 @@ testing_result<-confusionMatrix(testing_prediction, testing$classe)
 
 
 # Get the answers on the clean testing set to submit to the quiz
-submitted_answers<-predict(mod, clean_testing)
+submitted_answers_manual<-predict(mod, clean_testing)
