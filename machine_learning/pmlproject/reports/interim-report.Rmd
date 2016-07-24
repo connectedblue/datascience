@@ -1,47 +1,74 @@
 ---
-title: "pmlproject"
+title: "Human Activity Recognition - Analysis of Weight Lifting Exercise"
 author: "Chris Shaw"
 date: "22 July 2016"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, fig.width = 6, fig.height = 6)
 knitr::opts_chunk$set(root.dir="..")
+knitr::knit_hooks$set(inline = function(x) {
+  prettyNum(x, big.mark=" ")
+})
 setwd("..")
-library(ProjectTemplate)
+library(knitr)
+# initialise analysis
+library('ProjectTemplate')
 load.project()
-```
-
-## R Markdown
-
-```{r dataclean, eval=FALSE}
-#source('munge/01-A.R')
-```
-
-```{r munge}
-# knitr::read_chunk('../munge/01-A.R')
-```
-
-```{r test_var}
-training_summary
 
 ```
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+```{r analysis}
+# run the analysis code to generate the objects
+knitr::read_chunk('../src/rf-model-caret.R')
+ 
 ```
 
-## Including Plots
+# Background
 
-You can also embed plots, for example:
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices enable people to quantify how much of a particular activity they do, but rarely how well they do it. 
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+This paper analyses a series of  Weight Lifting Exercises carried out by six young health participants who were fitted with a number of such devices.  They performed one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions:
+
+* ***Class A*** exactly in accordance with the specification
+* ***Class B*** throwing the elbows to the front 
+* ***Class C*** lifting the dumbbell only halfway 
+* ***Class D*** lowering the dumbbell only halfway 
+* ***Class E*** throwing the hips to the front
+
+Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes.  Measurement data was collected from accelerometers on the belt, forearm, arm, and dumbell.
+
+# Weight Lifting Exercises Dataset
+
+The training dataset contains `r dim(pml.training)[1]` observation samples and `r dim(pml.training)[2]` columns (the last column **classe** is the outcome). 
+
+A
+
+```{r trainingsummary}
+# Create a table from the appropriate columns in the training summary data
+table_contents<-training_summary[c("start_time", "user_name", "exercise_time", "samples","classe")]
+
+# Add a total row at the bottom
+table_contents<-rbind(as.matrix(table_contents), c("Total","", "",
+                                                   sum(training_summary$samples), ""))
+#Print the table
+kable(table_contents,
+      row.names = FALSE, col.names = c("Date/time of Exercise", "Participant",
+                                       "Time taken (secs)", "Samples Collected", "Class"),
+      caption = "Summary of the Weight Lifting training dataset",
+      align = c("l", "c", "c","r","c"),
+      format.args = list(big.mark=","))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# Model
+
+Here are the most 15 important predictors in the model.
+
+```{r plotimpvars, fig.width = 10, fig.height = 6}
+varImpPlot(caretrf_mod$finalModel, n.var=15, main="15 most important predictive variables\n in the Random Forest model")
+```
+
+
