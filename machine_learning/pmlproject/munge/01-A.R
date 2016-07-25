@@ -1,12 +1,13 @@
 # Preprocess the raw data
 
-# cache the raw data 
+# cache the raw data (so that the raw data isn't downloaded every time) 
 cache('pml.testing')
 cache('pml.training')
 
 # dataset cleaning function
 
-## ---- munge
+## -- Code chunk to be displayed in reports
+## ---- clean
 
 clean<- function(dataset){
         
@@ -38,6 +39,11 @@ clean<- function(dataset){
 clean_training <- clean(pml.training)
 clean_testing <- clean(pml.testing)
 
+## ----
+
+## -- Code chunk to be displayed in reports
+## ---- summarisetraining
+
 # Create a summary table of the training data showing
 # when each exercise was performed, how long each took, 
 # and how many samples were collected
@@ -50,8 +56,15 @@ tmp<-cbind(training_summary[,1:2], data.frame(training_summary[,3]))
 training_summary<-tmp
 rm(tmp)
 training_summary$exercise_time<-training_summary$stop-training_summary$start
-training_summary$start_time<-as.POSIXlt(training_summary$start, origin = "1970-01-01", tz = "UTC")
+training_summary$start_time<-as.POSIXlt(training_summary$start,
+                                        origin = "1970-01-01", tz = "UTC")
 training_summary<-training_summary[with(training_summary,order(start)),]
+
+## ----
+
+
+## -- Code chunk to be displayed in reports
+## ---- reduce
 
 # Reduce down the training set further for analysis
 
@@ -71,6 +84,9 @@ inTrain <- createDataPartition(y=clean_training$classe, p=0.7, list=FALSE)
 training<-clean_training[inTrain,]
 testing<-clean_training[-inTrain,]
 rm(inTrain)
+
+## ---- 
+
 
 
 # Following lines not used ....

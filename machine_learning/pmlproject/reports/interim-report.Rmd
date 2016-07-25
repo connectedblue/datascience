@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = FALSE, fig.width = 6, fig.height = 6)
 knitr::opts_chunk$set(root.dir="..")
 knitr::knit_hooks$set(inline = function(x) {
-  prettyNum(x, big.mark=" ")
+  prettyNum(x, big.mark=",")
 })
 setwd("..")
 library(knitr)
@@ -39,7 +39,14 @@ This paper analyses a series of  Weight Lifting Exercises carried out by six you
 * ***Class D*** lowering the dumbbell only halfway 
 * ***Class E*** throwing the hips to the front
 
-Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes.  Measurement data was collected from accelerometers on the belt, forearm, arm, and dumbell.
+Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes.  Measurement data was collected from accelerometers on the belt, forearm, arm, and dumbbell.
+
+A training dataset has been provided which contains the measurement data and the associated class response.  The goal of this analysis is to predict the manner in which participants did the exercise using any of the other variables to predict with. We will describe how the model is built, how cross validation is used, what the expected out of sample error is, and why various choices were made. 
+
+Finally the prediction model will be used to predict 20 different test cases, supplied in a testing set. These will be submitted in the appropriate format for automated checking.
+
+All the R code used in this analysis is reproduced in the Appendix.
+
 
 # Weight Lifting Exercises Dataset
 
@@ -68,7 +75,48 @@ kable(table_contents,
 Here are the most 15 important predictors in the model.
 
 ```{r plotimpvars, fig.width = 10, fig.height = 6}
-varImpPlot(caretrf_mod$finalModel, n.var=15, main="15 most important predictive variables\n in the Random Forest model")
+varImpPlot(caretrf_mod$finalModel, n.var=15, main="15 most important predictive variables\n in the Random Forest model",
+            bg="mediumblue")
+```
+
+# Appendix
+
+The random forest training:
+
+```{r analysis2, ref.label="analysis", eval=FALSE, echo=TRUE}
+```
+
+Producing the summary matrix
+
+```{r summarisetraining, eval=TRUE, echo=FALSE}
+knitr::read_chunk('../munge/01-A.R')
+```
+
+```{r summarisetraining2, ref.label="summarisetraining", eval=FALSE, echo=TRUE}
+```
+
+
+
+The initial cleaning routine:
+
+```{r clean, eval=TRUE, echo=FALSE, warning=FALSE}
+knitr::read_chunk('../munge/01-A.R')
+```
+
+```{r clean2, ref.label="clean", eval=FALSE, echo=TRUE}
+```
+
+
+
+
+
+Reducing the number of measurement columns (removing columns with mostly NA)
+
+```{r reduce, eval=TRUE, echo=FALSE}
+knitr::read_chunk('../munge/01-A.R')
+```
+
+```{r reduce2, ref.label="reduce", eval=FALSE, echo=TRUE}
 ```
 
 
