@@ -72,11 +72,13 @@ training_summary<-training_summary[with(training_summary,order(start)),]
 clean_training<-clean_training[,-(1:3)]
 
 # identify which measurement columns do not have any NA values
+na_sum<-sapply(names(clean_training), function(x) sum(is.na(clean_training[,x])))
+
 nona<-sapply(names(clean_training), function(x) 
         ifelse(sum(is.na(clean_training[,x]))==0,TRUE,FALSE))
 # and filter only those ones
 clean_training <- clean_training[, nona]
-rm(nona)
+
 
 # Split the training set into a testing and training set for the modelling
 set.seed(1234)

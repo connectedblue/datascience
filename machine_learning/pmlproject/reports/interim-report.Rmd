@@ -52,7 +52,14 @@ All the R code used in this analysis is reproduced in the Appendix.
 
 The training dataset contains `r dim(pml.training)[1]` observation samples and `r dim(pml.training)[2]` columns (the last column **classe** is the outcome). 
 
-A
+The initial investigation into the training data revealed the following structure.
+
+* first 7 columns are identification variables, which determine when and to whom each observation applies.
+* The next 152 columns contain measurement data from the devices worn by the participants.  Some of these contained string representations of numbers, so these were converted to numeric.
+* The final column is the outcome variable, ***classe***, which we are trying to predict on the testing set
+* The testing set was checked to ensure all the columns had the same name and structure.  The only difference in the testing set is that the ***classe*** variable was set to values 1 to 20.  These will be replaced by the predicted values after the analysis.
+
+The following table shows how the data is distributed amongst participants:
 
 ```{r trainingsummary}
 # Create a table from the appropriate columns in the training summary data
@@ -70,14 +77,42 @@ kable(table_contents,
       format.args = list(big.mark=","))
 ```
 
+## Transforming the training set
+
+From the table above, we can see that the participant name and the date of exercise is not related to the outcome class.  The rows are collected in time order, so there's a possibility of a time series connection,  however we assumed not.  So for the subsequent analysis we removed the first seven columns. 
+
+The next task was to examine the number of missing values **NA** in the remaining columns. The following table shows how many columns have missing values, and how many missing values there are.
+
+```{r nacounts}
+# Contruct a frequency table of how many NAs are in the columns
+na_tab<-cbind(data.frame(c("NA Count", "Number of columns")),t(count(na_sum)))
+names(na_tab)<-rep("&nbsp;", ncol(na_tab))
+kable(na_tab, row.names = FALSE,  format.args = list(big.mark = ','))
+```
+
+We can see that there are 53 columns with no missing values at all.  Of the remainder, the vast majority of observations are missing.  We decided to ignore these columns also in the analysis, and keep only the 53 complete columns.
+
+The code for these transformations is in the appendix.
+
 # Model
 
 Here are the most 15 important predictors in the model.
 
 ```{r plotimpvars, fig.width = 10, fig.height = 6}
+par(bg="cornsilk")
 varImpPlot(caretrf_mod$finalModel, n.var=15, main="15 most important predictive variables\n in the Random Forest model",
             bg="mediumblue")
 ```
+
+Selection of the best tuning parameters
+
+```{r plottuning, fig.width = 10, fig.height = 6}
+par(bg="cornsilk")
+plot(caretrf_mod, main="Comparison of accuracy for different mtry")
+```
+
+
+
 
 # Appendix
 
