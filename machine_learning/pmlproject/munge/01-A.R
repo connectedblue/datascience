@@ -82,7 +82,8 @@ clean_training <- clean_training[, nona]
 
 # Split the training set into a testing and training set for the modelling
 set.seed(1234)
-inTrain <- createDataPartition(y=clean_training$classe, p=0.7, list=FALSE)
+train_split<-0.7
+inTrain <- createDataPartition(y=clean_training$classe, p=train_split, list=FALSE)
 training<-clean_training[inTrain,]
 testing<-clean_training[-inTrain,]
 rm(inTrain)
