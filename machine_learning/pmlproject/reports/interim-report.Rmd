@@ -90,13 +90,33 @@ names(na_tab)<-rep("&nbsp;", ncol(na_tab))
 kable(na_tab, row.names = FALSE,  format.args = list(big.mark = ','))
 ```
 
-We can see that there are 53 columns with no missing values at all.  Of the remainder, the vast majority of observations are missing.  We decided to ignore these columns also in the analysis, and keep only the 53 complete columns.
+We can see that there are `r na_tab[1,0]` columns with no missing values at all.  Of the remainder, the vast majority of observations are missing.  We decided to ignore these columns also in the analysis, and keep only the `r na_tab[1,0]` complete columns.
 
-The code for these transformations is in the appendix.
+The code for these transformations is in the appendix.  
 
-# Model
+## Creation of new training and transformation sets
 
-Here are the most 15 important predictors in the model.
+In order to train a model and test it, the transformed training data was further partitioned on the ***classe*** variable into training and testing sets, in the proportion `r 100*train_split`:`r 100*(1-train_split)`.  
+
+The training set was used to train the model and the testing set was set aside to verify its accuracy.
+
+# Building the Model
+
+The large number of variables makes it impossible to see any simple relationships using plots, so linear regression models were rejected straight away.  We then performed informal models using trees and random forests.  The initial results showed around 52% accuracy for trees and greater than 99% for random forests.  We therefore made a decision to use random forests, and set about tuning the model for maximum accuracy.
+
+In order to train the random forest, we deployed parameter tuning and cross validation techniques to obtain greater accuracy on the training set.  The parameter which has most effect is **mtry**, which is the number of variables randomly sampled at each tree split.  In addition, we selected 5-fold cross validation to average model predictions five times over different random selections of the data.
+
+
+# Results
+
+The following graph shows the averged accuracy for each value of the **mtry** parameter used in the training.  The value `r caretrf_mod$bestTune` was selected for the final model.
+
+```{r plottuning, fig.width = 10, fig.height = 6}
+par(bg="cornsilk")
+plot(caretrf_mod, main="Comparison of accuracy for different mtry")
+```
+
+In addition, it is interesting to determine which of the many accelerometer measurements are most important in the prediction model.  Here are the Gini importance calculations for the most 15 important predictors in the model.
 
 ```{r plotimpvars, fig.width = 10, fig.height = 6}
 par(bg="cornsilk")
@@ -104,12 +124,23 @@ varImpPlot(caretrf_mod$finalModel, n.var=15, main="15 most important predictive 
             bg="mediumblue")
 ```
 
-Selection of the best tuning parameters
+# Accuracy prediction
 
-```{r plottuning, fig.width = 10, fig.height = 6}
-par(bg="cornsilk")
-plot(caretrf_mod, main="Comparison of accuracy for different mtry")
+`r caretrf_mod`
+
+`r caretrf_submitted_answers`
+
+The final model predicts an an accuracy of `r round(max(caretrf_mod$results[,2])*100,2)`%.  This means that the out of sample error rate is `r round(1-max(caretrf_mod$results[,2])*100,2)`%.
+
+This was tested against the test set which was held back during training (about 30% of the original sample).  This produced the following prediction table:
+
+```{r testingtable}
+#kable(caretrf_testing_result$table)
 ```
+
+The testing data suggests a mean accuracy of `r round(max(caretrf_testing_result$overall["Accuracy"])*100,2)`%  with a 95% confidence interval of [`r round(max(caretrf_testing_result$overall["AccuracyLower"])*100,2)`, `r round(max(caretrf_testing_result$overall["AccuracyUpper"])*100,2)`]
+
+
 
 
 

@@ -12,9 +12,15 @@ registerDoParallel(cores=4)
 if(!exists("caretrf_mod")){
         caretrf_mod <- train(classe~., data=training, 
                      trControl=trainControl(method="cv",number=5),
-                     method="rf", proximity=TRUE)
+                     method="rf")
 
 }
+
+# Run the model against the training set (this should be an exact match because the
+# final model is re-run against the full training set)
+caretrf_training_prediction<-predict(caretrf_mod$finalModel, training)
+caretrf_training_result<-confusionMatrix(caretrf_training_prediction, training$classe)
+
               
 
 # Run the model against the testing set
@@ -28,3 +34,5 @@ caretrf_submitted_answers<-predict(caretrf_mod, clean_testing)
 # Save the model in the cache (because it takes a while to run)
 
 cache("caretrf_mod")
+
+## ----
