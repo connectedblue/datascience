@@ -12,7 +12,7 @@ knitr::knit_hooks$set(inline = function(x) {
   prettyNum(x, big.mark=",")
 })
 setwd("..")
-print(getwd())
+#print(getwd())
 library(knitr)
 # initialise analysis
 library('ProjectTemplate')
@@ -49,7 +49,7 @@ Finally the prediction model will be used to predict 20 different test cases, su
 All the R code used in this analysis is reproduced in the Appendix.
 
 
-# Weight Lifting Exercises Dataset
+# Exploratory Analysis
 
 The training dataset contains `r dim(pml.training)[1]` observation samples and `r dim(pml.training)[2]` columns (the last column **classe** is the outcome). 
 
@@ -131,6 +131,14 @@ varImpPlot(caretrf_mod$finalModel, n.var=15, main="15 most important predictive 
 The final model predicts an an accuracy of `r round(max(caretrf_mod$results[,2])*100,2)`%.  This means that the out of sample error rate is `r round(100-max(caretrf_mod$results[,2])*100,2)`%.
 
 This was tested against the test set which was held back during training (about 30% of the original sample).  This produced the following prediction table:
+
+
+```{r testingtable}
+kable(caretrf_testing_result$table)
+```
+
+The testing data suggests a mean accuracy of `r round(max(caretrf_testing_result$overall["Accuracy"])*100,2)`%  with a 95% confidence interval of [`r round(max(caretrf_testing_result$overall["AccuracyLower"])*100,2)`, `r round(max(caretrf_testing_result$overall["AccuracyUpper"])*100,2)`]
+
 
 
 

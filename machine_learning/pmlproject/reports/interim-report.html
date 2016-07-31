@@ -486,6 +486,61 @@ $(document).ready(function () {
 <h1>Accuracy prediction</h1>
 <p>The final model predicts an an accuracy of 99.18%. This means that the out of sample error rate is 0.82%.</p>
 <p>This was tested against the test set which was held back during training (about 30% of the original sample). This produced the following prediction table:</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="right">A</th>
+<th align="right">B</th>
+<th align="right">C</th>
+<th align="right">D</th>
+<th align="right">E</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">A</td>
+<td align="right">1674</td>
+<td align="right">8</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">B</td>
+<td align="right">0</td>
+<td align="right">1130</td>
+<td align="right">4</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">C</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1018</td>
+<td align="right">6</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">D</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">4</td>
+<td align="right">956</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">E</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1076</td>
+</tr>
+</tbody>
+</table>
+<p>The testing data suggests a mean accuracy of 99.47% with a 95% confidence interval of [99.25, 99.64]</p>
 </div>
 <div id="appendix" class="section level1">
 <h1>Appendix</h1>
