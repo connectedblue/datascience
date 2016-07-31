@@ -15,7 +15,7 @@ registerDoParallel(cores=4)
 if(!exists("caretrf_mod")){
         caretrf_mod <- train(classe~., data=training, 
                      trControl=trainControl(method="cv",number=5),
-                     method="rf")
+                     method="rf", importance=TRUE)
 
 }
 

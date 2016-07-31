@@ -17,12 +17,21 @@ library(knitr)
 # initialise analysis
 library('ProjectTemplate')
 load.project()
-
 ```
 
 
+```{r runanalysis, warning=FALSE, message=FALSE}
+# Note to Reviewers:
+#
+# This analysis was organised using ProjectTemplate as it was way to large to store
+# in this report document.  However all the key code chunks are reproduced in the
+# html Appendix.  You can also view the full analysis repository here if you wish:
+#
+# https://github.com/connectedblue/datascience/tree/master/machine_learning/pmlproject
+#
+# The README explains how the files are organised
 
-```{r runanalysis, warning=TRUE}
+
 # run the analysis code to generate the objects
 
 source('../src/rf-model-caret.R') 
@@ -31,6 +40,8 @@ source('../src/rf-model-caret.R')
 # Background
 
 Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices enable people to quantify how much of a particular activity they do, but rarely how well they do it. 
+
+This is an active research are and we are grateful to Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; and Fuks, H for their paper [Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013](http://groupware.les.inf.puc-rio.br/har) and the dataset used in this analysis.
 
 This paper analyses a series of  Weight Lifting Exercises carried out by six young health participants who were fitted with a number of such devices.  They performed one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions:
 
@@ -44,10 +55,9 @@ Class A corresponds to the specified execution of the exercise, while the other 
 
 A training dataset has been provided which contains the measurement data and the associated class response.  The goal of this analysis is to predict the manner in which participants did the exercise using any of the other variables to predict with. We will describe how the model is built, how cross validation is used, what the expected out of sample error is, and why various choices were made. 
 
-Finally the prediction model will be used to predict 20 different test cases, supplied in a testing set. These will be submitted in the appropriate format for automated checking.
+Finally the prediction model will be used to predict 20 different test cases, supplied in a testing set (whose A-E classification is unknown to the author). These will be submitted in the appropriate format for automated checking.
 
 All the R code used in this analysis is reproduced in the Appendix.
-
 
 # Exploratory Analysis
 
@@ -78,9 +88,11 @@ kable(table_contents,
       format.args = list(big.mark=","))
 ```
 
+The structure of the dataset can be clearly seen.  Each participant performed exercises A to E in order and with no significant break between.  Several hundred samples were taken for each one, depending on the length of each exercise.  Most measurements are sampled several times a second, although certain ones only once per second (see section below about missing values)
+
 ## Transforming the training set
 
-From the table above, we can see that the participant name and the date of exercise is not related to the outcome class.  The rows are collected in time order, so there's a possibility of a time series connection,  however we assumed not.  So for the subsequent analysis we removed the first seven columns. 
+We can see that the participant name and the date of exercise is not related to the outcome class.  The rows are collected in time order, so there's a possibility of a time series connection,  however we assumed not.  So for the subsequent analysis we removed the first seven columns. 
 
 The next task was to examine the number of missing values **NA** in the remaining columns. The following table shows how many columns have missing values, and how many missing values there are.
 
@@ -91,7 +103,9 @@ names(na_tab)<-rep("&nbsp;", ncol(na_tab))
 kable(na_tab, row.names = FALSE,  format.args = list(big.mark = ','))
 ```
 
-We can see that there are `r na_tab[2,2]` columns with no missing values at all.  Of the remainder, the vast majority of observations are missing.  We decided to ignore these columns also in the analysis, and keep only the `r na_tab[2,2]` complete columns.
+We can see that there are `r na_tab[2,2]` columns with no missing values at all.  Of the remainder, the vast majority of observations are missing.  These relate to measurements that can only be taken once per second, and it is not immediately obvious how they could be imputed across all samples.
+
+We decided to ignore these columns also in the analysis, and keep only the `r na_tab[2,2]` complete columns.  If the modelling had failed, we could revisit this assumption and look more deeply into these predictors.
 
 The code for these transformations is in the appendix.  
 
@@ -117,11 +131,11 @@ par(bg="cornsilk")
 plot(caretrf_mod, main="Comparison of accuracy for different mtry")
 ```
 
-In addition, it is interesting to determine which of the many accelerometer measurements are most important in the prediction model.  Here are the Gini importance calculations for the most 15 important predictors in the model.
+In addition, it is interesting to determine which of the many accelerometer measurements are most important in the prediction model.  The following plot shows the most important predictors that contribute to the model accuracy.
 
 ```{r plotimpvars, fig.width = 10, fig.height = 6}
 par(bg="cornsilk")
-varImpPlot(caretrf_mod$finalModel, n.var=15, main="15 most important predictive variables\n in the Random Forest model",
+varImpPlot(caretrf_mod$finalModel, n.var=15, main="15 most important predictive variables\n in the Random Forest model", type=1,
             bg="mediumblue")
 ```
 
@@ -130,7 +144,7 @@ varImpPlot(caretrf_mod$finalModel, n.var=15, main="15 most important predictive 
 
 The final model predicts an an accuracy of `r round(max(caretrf_mod$results[,2])*100,2)`% from the training set.  This means that the out of sample error rate is `r round(100-max(caretrf_mod$results[,2])*100,2)`%.
 
-This was tested against the test set which was held back during training (about 30% of the original sample).  This produced the following prediction table:
+This was tested against the test set which was held back during training (`r nrow(testing)` samples - about 30% of the original).  The following table shows how the model predicted the class of those samples, compared to the actual values:
 
 
 ```{r testingtable}
