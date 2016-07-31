@@ -149,8 +149,8 @@ $(document).ready(function () {
 <p>Finally the prediction model will be used to predict 20 different test cases, supplied in a testing set. These will be submitted in the appropriate format for automated checking.</p>
 <p>All the R code used in this analysis is reproduced in the Appendix.</p>
 </div>
-<div id="weight-lifting-exercises-dataset" class="section level1">
-<h1>Weight Lifting Exercises Dataset</h1>
+<div id="exploratory-analysis" class="section level1">
+<h1>Exploratory Analysis</h1>
 <p>The training dataset contains 19,622 observation samples and 160 columns (the last column <strong>classe</strong> is the outcome).</p>
 <p>The initial investigation into the training data revealed the following structure.</p>
 <ul>
@@ -461,7 +461,7 @@ $(document).ready(function () {
 </tr>
 </tbody>
 </table>
-<p>We can see that there are columns with no missing values at all. Of the remainder, the vast majority of observations are missing. We decided to ignore these columns also in the analysis, and keep only the complete columns.</p>
+<p>We can see that there are 53 columns with no missing values at all. Of the remainder, the vast majority of observations are missing. We decided to ignore these columns also in the analysis, and keep only the 53 complete columns.</p>
 <p>The code for these transformations is in the appendix.</p>
 </div>
 <div id="creation-of-new-training-and-transformation-sets" class="section level2">

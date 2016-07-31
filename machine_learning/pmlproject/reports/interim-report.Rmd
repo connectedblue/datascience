@@ -91,7 +91,7 @@ names(na_tab)<-rep("&nbsp;", ncol(na_tab))
 kable(na_tab, row.names = FALSE,  format.args = list(big.mark = ','))
 ```
 
-We can see that there are `r na_tab[1,0]` columns with no missing values at all.  Of the remainder, the vast majority of observations are missing.  We decided to ignore these columns also in the analysis, and keep only the `r na_tab[1,0]` complete columns.
+We can see that there are `r na_tab[2,2]` columns with no missing values at all.  Of the remainder, the vast majority of observations are missing.  We decided to ignore these columns also in the analysis, and keep only the `r na_tab[2,2]` complete columns.
 
 The code for these transformations is in the appendix.  
 
@@ -128,16 +128,17 @@ varImpPlot(caretrf_mod$finalModel, n.var=15, main="15 most important predictive 
 # Accuracy prediction
 
 
-The final model predicts an an accuracy of `r round(max(caretrf_mod$results[,2])*100,2)`%.  This means that the out of sample error rate is `r round(100-max(caretrf_mod$results[,2])*100,2)`%.
+The final model predicts an an accuracy of `r round(max(caretrf_mod$results[,2])*100,2)`% from the training set.  This means that the out of sample error rate is `r round(100-max(caretrf_mod$results[,2])*100,2)`%.
 
 This was tested against the test set which was held back during training (about 30% of the original sample).  This produced the following prediction table:
 
 
 ```{r testingtable}
-kable(caretrf_testing_result$table)
+kable(caretrf_testing_result$table,
+      caption="Rows contain the predicted response, columns show the actual response in the testing set")
 ```
 
-The testing data suggests a mean accuracy of `r round(max(caretrf_testing_result$overall["Accuracy"])*100,2)`%  with a 95% confidence interval of [`r round(max(caretrf_testing_result$overall["AccuracyLower"])*100,2)`, `r round(max(caretrf_testing_result$overall["AccuracyUpper"])*100,2)`]
+It can be seen that the model performed well on the testing set - almost all predictions lie on the diagonal, with a just few observations mis-predicted.  This suggests a mean accuracy of `r round(max(caretrf_testing_result$overall["Accuracy"])*100,2)`%  with a 95% confidence interval of [`r round(max(caretrf_testing_result$overall["AccuracyLower"])*100,2)`, `r round(max(caretrf_testing_result$overall["AccuracyUpper"])*100,2)`]
 
 
 
