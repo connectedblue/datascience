@@ -1,0 +1,21 @@
+Data Products Project
+
+This project contains the data and analysis for the week 4 project of the Data Products module on Coursera.
+
+The idea is to produce a shiny app based on any data set we choose.  This project is going to be based around traffic journey information in the cit of Bristol.
+
+
+Data Capture
+------------
+
+The data directory contains a large CSV file downloaded from:
+
+https://opendata.bristol.gov.uk/Mobility/Historic-journey-times/jdq4-bmr7
+
+Note that the dataframe is updated every ten minutes.  This project will just use a static set, but a future project will sample new data every day.
+
+The raw dataframe is called Historic.journey.times aand is cached because it takes a while to process the CSV. However, it is deleted from the environment after the initial processing.
+
+A dataframe called journeys is used instead in the script.  This contains the raw data and some additional columns useful in the analysis.  This is also cached for speed.
+
+
