@@ -20,6 +20,9 @@ if(!exists("journeys")){
         journeys$hour <- as.numeric(strftime(journeys$time, "%H"))
         journeys$doy <- as.numeric(strftime(journeys$time, "%j"))
         journeys$distance_miles <- round(journeys$travel.time/(60*60)*journeys$est_speed,1)
+        
+        # Rename column to show mph
+        names(journeys)[names(journeys)=="est_speed"] <- "est_speed_mph"
 
         # fix errors in the data, found through exploratory analysis
         
@@ -38,6 +41,11 @@ if(!exists("journeys")){
         journeys$distance <-ifelse(journeys$section_id=="SECTIONTL00109" &
                                            journeys$distance==1.7, 2.8, journeys$distance )
         
+        # correct the sections that have multiple location points
+        # (see file sent by bristol city council.  This is loaded into fix.locations)
+        journeys<-merge(journeys, fix.locations, by="section_id", all.x=TRUE)
+        journeys$location=ifelse(is.na(journeys$new_loc), journeys$location, journeys$new_loc)
+        journeys$new_loc<-NULL
 }
 
 # cache and tidy up
@@ -55,7 +63,7 @@ summary <- journeys %>% group_by(section_id, section_description,
 hourly_speed_mean <- journeys %>% filter(doy >= as.POSIXlt("15/09/2014", "%d/%m/%Y", tz="GMT")$yday &
                                          doy <= as.POSIXlt("15/11/2014", "%d/%m/%Y", tz="GMT")$yday) %>%
                                   group_by(hour) %>%
-                                  summarise(ave_speed=mean(est_speed))
+                                  summarise(ave_speed=mean(est_speed_mph))
 
 
 

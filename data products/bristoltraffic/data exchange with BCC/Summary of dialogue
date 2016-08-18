@@ -1,0 +1,24 @@
+Emailed with Matthew Cockburn - owner of the dataset at Bristol CC
+
+
+He provided some additional files:
+
+ - traffic profiles for period between 15 Sep - 15 Nov
+ - link locations - a more accurate GPS location for the route centers
+ 
+I couldn't tie in the traffic profiles exactly.  It wasn't clear which year he was taking, but I think 2014 judging by the number of records in the histogram of speeds
+
+
+Interesting additonal info about the dataset
+
+The dataset is automatically created from Automatic Number Plate Recognition software and so we don’t carry out any checks. It is also a very large dataset which makes it quite difficult to manipulate!
+ 
+The biggest issue I am aware of is that there was a period when there was dual reporting to some links between about September and December last year. This came about because some more links were added which meant that identifying the links by the last two digits – as we had been doing – no longer identified them uniquely. Since January this has been resolved and that data should be much more robust.
+
+Great to hear you’re making good use of our data. Looking at patterns in times of day/ week/ weather is exactly the sort of thing we think this data can be used for.
+ 
+As I said, I think data since January 16 or before Sept 15 is much more reliable. I’m not sure how to go about weeding out the duplicate results that occurred when, for example, there was a SECTIONTL00103 and a SECTIONTL00003 which we mistakenly both coded as SECTIONTL00003 due to only looking up last two digits (and not expecting links over 99).
+ 
+I’ve attached the lookup table we use which is pretty much as you’ve deduced. These include indicative link centre points and distances in miles. Speeds are in mph.
+ 
+I’ve attached a few examples of assessments I’ve done in the past for info.
