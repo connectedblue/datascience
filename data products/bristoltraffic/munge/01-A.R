@@ -48,8 +48,17 @@ if(!exists("journeys")){
         # correct the sections that have multiple location points
         # (see file sent by bristol city council.  This is loaded into fix.locations)
         journeys<-merge(journeys, fix.locations, by="section_id", all.x=TRUE)
-        journeys$location<-ifelse(is.na(journeys$new_loc), journeys$location, journeys$new_loc)
+        journeys$location<-as.character(journeys$location)
+        journeys$new_loc<-as.character(journeys$new_loc)
+        journeys$location<-ifelse(is.na(journeys$new_loc), journeys$location, 
+                                  journeys$new_loc)
         journeys$new_loc<-NULL
+        
+        # Re-create some factor variables to make subsequent analysis more efficient
+        journeys$section_id<-as.factor(journeys$section_id)
+        journeys$location<-as.factor(journeys$location)
+        journeys$day<-as.factor(journeys$day)
+        journeys$month<-as.factor(journeys$month)
 }
 
 # cache and tidy up
