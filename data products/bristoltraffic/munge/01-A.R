@@ -35,16 +35,20 @@ if(!exists("journeys")){
                                      journeys$section_description=="St Michaels OB to Blackboy Hill OB",
                                      "SECTIONTL00176", journeys$section_id )
         
-        # these sections have the wrong distance - corrected to the majority for the route
-        journeys$distance <-ifelse(journeys$section_id=="SECTIONTL00104" &
-                                   journeys$distance==1.8, 2.8, journeys$distance )
-        journeys$distance <-ifelse(journeys$section_id=="SECTIONTL00109" &
-                                           journeys$distance==1.7, 2.8, journeys$distance )
+        
+        # these sections have the wrong distance for some lines.
+        # remove them because we don't know if it's journey time or speed that is 
+        # incorrect (or both even)
+        journeys <- journeys[!((journeys$section_id=="SECTIONTL00104" &
+                              journeys$distance==1.8) |
+                              (journeys$section_id=="SECTIONTL00109" &
+                               journeys$distance==1.7)),]             
+                                     
         
         # correct the sections that have multiple location points
         # (see file sent by bristol city council.  This is loaded into fix.locations)
         journeys<-merge(journeys, fix.locations, by="section_id", all.x=TRUE)
-        journeys$location=ifelse(is.na(journeys$new_loc), journeys$location, journeys$new_loc)
+        journeys$location<-ifelse(is.na(journeys$new_loc), journeys$location, journeys$new_loc)
         journeys$new_loc<-NULL
 }
 
@@ -54,7 +58,7 @@ rm(Historic.journey.times)
 
 
 summary <- journeys %>% group_by(section_id, section_description,
-                                 distance, location) %>%
+                                 distance_miles, location) %>%
                      summarise(n=n())
 
 # This data summary is to reproduce a file provided by Bristol City council calculating
