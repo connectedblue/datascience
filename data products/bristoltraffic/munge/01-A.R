@@ -1,29 +1,25 @@
-# Example preprocessing script.
+# Create a dataset called journeys from the raw data
+# Add some additional fields
+# Correct some data errors
 
 if(!exists("journeys")){
         # Rename dataframe to something easier to manage
-        
         journeys<- Historic.journey.times
         
         # first line is blank, so remove
-        
         journeys <- journeys[2:nrow(journeys),]
         
-        
         # convert time column to date object
-        
-        
         journeys$time <- as.POSIXct(as.character(journeys$time), 
                                          format="%m/%d/%Y %I:%M:%S %p %z")
-        
-        
         
         # Create some new columns to split the date object into more useful components
         journeys$day <- weekdays(journeys$time)
         journeys$month <- months(journeys$time)
         journeys$week <- as.numeric(strftime(journeys$time, "%W"))
         journeys$hour <- as.numeric(strftime(journeys$time, "%H"))
-        journeys$distance <- round(journeys$travel.time/(60*60)*journeys$est_speed,1)
+        journeys$doy <- as.numeric(strftime(journeys$time, "%j"))
+        journeys$distance_miles <- round(journeys$travel.time/(60*60)*journeys$est_speed,1)
 
         # fix errors in the data, found through exploratory analysis
         
@@ -48,7 +44,18 @@ if(!exists("journeys")){
 update_cache(c("Historic.journey.times", "journeys"))
 rm(Historic.journey.times)
 
+
 summary <- journeys %>% group_by(section_id, section_description,
-                                 distance) %>%
+                                 distance, location) %>%
                      summarise(n=n())
+
+# This data summary is to reproduce a file provided by Bristol City council calculating
+# the average speed across all routes 15 Sep - 15 November
+
+hourly_speed_mean <- journeys %>% filter(doy >= as.POSIXlt("15/09/2014", "%d/%m/%Y", tz="GMT")$yday &
+                                         doy <= as.POSIXlt("15/11/2014", "%d/%m/%Y", tz="GMT")$yday) %>%
+                                  group_by(hour) %>%
+                                  summarise(ave_speed=mean(est_speed))
+
+
 
