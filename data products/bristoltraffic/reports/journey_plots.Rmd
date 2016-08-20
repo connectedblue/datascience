@@ -1,0 +1,60 @@
+---
+title: "Plots of Journey speeds"
+author: "Chris Shaw"
+date: "19 August 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overall speed distribution across all routes
+
+```{r overallplot}
+hist_norm(journeys$est_speed_mph, 40, "Overall speed across all routes")
+
+```
+
+
+## Distribution of speed by hour for a busy route
+
+The following show the distribution of speeds for each hour.  The normal distribution with the sample mean and standard deviation is overlaid for comparison
+
+```{r hourplots}
+periods <-  c("Morning", "Evening", "Day", "Night")
+par(mfrow=c(2,2), oma=c(0,0,2,0))
+id<-"SECTIONTL00004"
+mtitle=paste0(id, " - ", summary[summary$section_id==id,]$section_description)
+
+
+route <- journeys[journeys$section_id==id,]
+
+for (p in periods) {
+        
+        hist_norm(journeys[route$time_period==p,]$est_speed_mph, 40, p)
+}
+
+title(mtitle, outer=TRUE)
+
+par(mfrow=c(1,1), oma=c(0,0,2,0))
+
+hist_norm(journeys[journeys$section_id==id,]$est_speed_mph, 40, "Overall distribution of speed for the route")
+
+```
+
+
+
+## Plots of overall route speeds
+
+The following show the distribution of speeds for each route.  The normal distribution with the sample mean and standard deviation is overlaid for comparison
+
+```{r sectionplots}
+routes <- summary$section_id
+
+for (r in routes) {
+        hist_norm(journeys[journeys$section_id==r,]$est_speed_mph, 40, r)
+}
+
+
+```

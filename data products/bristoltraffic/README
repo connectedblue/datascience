@@ -18,4 +18,7 @@ The raw dataframe is called Historic.journey.times aand is cached because it tak
 
 A dataframe called journeys is used instead in the script.  This contains the raw data and some additional columns useful in the analysis.  This is also cached for speed.
 
+There are a number of errors in the data which are fixed before caching the journeys object(see munge processing files).  This uses some additional information provided by Bristol CC (stored in a seperate directory).
+
+
 

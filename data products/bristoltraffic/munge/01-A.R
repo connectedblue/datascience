@@ -1,14 +1,11 @@
-# Create a dataset called journeys from the raw data
-# Add some additional fields
-# Correct some data errors
 
-if(!exists("journeys")){
-        # Rename dataframe to something easier to manage
-        journeys<- Historic.journey.times
-        
-        # first line is blank, so remove
-        journeys <- journeys[2:nrow(journeys),]
-        
+# Function to clean up a raw dataset
+# input is:
+#    journeys is a dataframe in the form specified by Bristol CC
+#             in this dataset:  https://opendata.bristol.gov.uk/Mobility/Historic-journey-times/jdq4-bmr7
+#    location_fixes is a dataframe that corrects central location points for some routes
+
+clean_traffic_data <- function(journeys, location_fixes) {
         # convert time column to date object
         journeys$time <- as.POSIXct(as.character(journeys$time), 
                                          format="%m/%d/%Y %I:%M:%S %p %z")
@@ -20,7 +17,11 @@ if(!exists("journeys")){
         journeys$hour <- as.numeric(strftime(journeys$time, "%H"))
         journeys$doy <- as.numeric(strftime(journeys$time, "%j"))
         journeys$distance_miles <- round(journeys$travel.time/(60*60)*journeys$est_speed,1)
-        
+        journeys$time_period <- ifelse(journeys$hour>=0  & journeys$hour< 6, "Night",
+                                ifelse(journeys$hour>=6  & journeys$hour<10, "Morning",       
+                                ifelse(journeys$hour>=10 & journeys$hour<16, "Day",
+                                ifelse(journeys$hour>=16 & journeys$hour<20, "Evening", "Night")
+                                )))
         # Rename column to show mph
         names(journeys)[names(journeys)=="est_speed"] <- "est_speed_mph"
 
@@ -46,37 +47,26 @@ if(!exists("journeys")){
                                      
         
         # correct the sections that have multiple location points
-        # (see file sent by bristol city council.  This is loaded into fix.locations)
-        journeys<-merge(journeys, fix.locations, by="section_id", all.x=TRUE)
+        # (see file sent by bristol city council)
+        journeys<-merge(journeys, location_fixes, by="section_id", all.x=TRUE)
         journeys$location<-as.character(journeys$location)
         journeys$new_loc<-as.character(journeys$new_loc)
         journeys$location<-ifelse(is.na(journeys$new_loc), journeys$location, 
                                   journeys$new_loc)
         journeys$new_loc<-NULL
         
+        # remove lat/long columns since they are now inconsistent
+        journeys$lat<-NULL
+        journeys$long<-NULL
+        
         # Re-create some factor variables to make subsequent analysis more efficient
         journeys$section_id<-as.factor(journeys$section_id)
         journeys$location<-as.factor(journeys$location)
         journeys$day<-as.factor(journeys$day)
         journeys$month<-as.factor(journeys$month)
+        journeys$time_period<-as.factor(journeys$time_period)
+        
+        # Return the cleaned up dataframe
+        journeys
 }
-
-# cache and tidy up
-update_cache(c("Historic.journey.times", "journeys"))
-rm(Historic.journey.times)
-
-
-summary <- journeys %>% group_by(section_id, section_description,
-                                 distance_miles, location) %>%
-                     summarise(n=n())
-
-# This data summary is to reproduce a file provided by Bristol City council calculating
-# the average speed across all routes 15 Sep - 15 November
-
-hourly_speed_mean <- journeys %>% filter(doy >= as.POSIXlt("15/09/2014", "%d/%m/%Y", tz="GMT")$yday &
-                                         doy <= as.POSIXlt("15/11/2014", "%d/%m/%Y", tz="GMT")$yday) %>%
-                                  group_by(hour) %>%
-                                  summarise(ave_speed=mean(est_speed_mph))
-
-
 
