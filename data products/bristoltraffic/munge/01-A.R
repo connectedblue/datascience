@@ -59,6 +59,11 @@ clean_traffic_data <- function(journeys, location_fixes) {
         journeys$lat<-NULL
         journeys$long<-NULL
         
+        # weed out duplicates - keep only a single time record per route
+        primary <- paste0(journeys$section_id, format(journeys$time, "%m/%d/%Y %H:%M:%S"))
+        journeys <- journeys[!duplicated(primary),]
+        
+        
         # Re-create some factor variables to make subsequent analysis more efficient
         journeys$section_id<-as.factor(journeys$section_id)
         journeys$location<-as.factor(journeys$location)

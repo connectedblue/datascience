@@ -1,0 +1,34 @@
+---
+title: "Accounting for deleted rows"
+author: "Chris Shaw"
+date: "21 August 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Set keep_raw_data to be TRUE in the custom config file before running this script
+# It assumes that Historic.journey.times has not been deleted
+
+```
+
+## Intro
+
+This report reconciles and analyses where rows were not included from the raw data in the **journeys** data frame used for subsequent analysis.  Columns are not looked at because they are simply additions or substractions.
+
+Basic stats about the raw data and the processed **journeys** data sets:
+
+```{r basicinfo}
+
+raw_data_rows <- nrow(Historic.journey.times)
+journeys_rows <- nrow(journeys)
+difference <- raw_data_rows -  journeys_rows
+
+```
+
+Raw data rows:  `r raw_data_rows`
+journeys rows:  `r journeys_rows`
+Difference to reconcile:  `r difference`
+
+# 
