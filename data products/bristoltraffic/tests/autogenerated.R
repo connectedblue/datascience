@@ -1,0 +1,16 @@
+#expect_that(cc(), equals(NULL))
+#expect_that(hist_norm(g = NULL, b = NULL, main = NULL, xlab = NULL, ... = NULL), equals(NULL))
+#expect_that(split_location(location = NULL), equals(NULL))
+#expect_that(cc(), equals(NULL))
+#expect_that(clear(), equals(NULL))
+#expect_that(clear_all(), equals(NULL))
+#expect_that(clear_cache(files = NULL), equals(NULL))
+#expect_that(create.report(report_name = NULL, template = NULL), equals(NULL))
+#expect_that(hist_norm(g = NULL, b = NULL, main = NULL, xlab = NULL, ... = NULL), equals(NULL))
+#expect_that(read_custom_config(), equals(NULL))
+#expect_that(report.names(dir = "reports/cccc"), equals(NULL))
+#expect_that(split_location(location = NULL), equals(NULL))
+#expect_that(update_cache(objs = NULL), equals(NULL))
+#expect_that(write.report(report_name = NULL, regenerate = NULL), equals(NULL))
+
+
