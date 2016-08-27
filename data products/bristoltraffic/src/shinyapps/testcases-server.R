@@ -1,5 +1,10 @@
 library(shiny)
 
+
+#  This isn't a functioning server - it's a scratch area to test
+# the various map layouts
+
+
 #server part to serve the maps
 
 shinyServer(
@@ -7,16 +12,6 @@ shinyServer(
         }
 )
 
-
-icon.glyphicon <- makeAwesomeIcon(icon= 'flag', markerColor = 'red',
-                                  iconColor = 'black', library = 'glyphicon')
-
-
-redMarker <- icons(
-        iconUrl = "http://leafletjs.com/docs/images/marker-icon-red.png",
-        iconWidth = 38, iconHeight = 95,
-        iconAnchorX = 22, iconAnchorY = 94
-)
 
 
 # This seems to work simply - coloured circles that stay the same size regardless

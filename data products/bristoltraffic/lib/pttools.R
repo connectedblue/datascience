@@ -36,6 +36,7 @@ find.names <- function (dir="."){
                 # make sure there's at least one / in the dir name
                 dirs <- paste0("./", dirs)
                 file <- c()
+                
                 # extract only files with extension R or Rmd
                 extract_type <- ".*\\.Rmd|R$"
                 
@@ -59,13 +60,31 @@ find.names <- function (dir="."){
         
         # Get template names and files
         templates <- NULL
-        if (length(template_dir)>0) templates <- extract_files(template_dir, get_name_from_dir = FALSE)
+        default_row <- 0
+        if (length(template_dir)>0) {
+                # Get the templates
+                templates <- extract_files(template_dir, get_name_from_dir = FALSE)
+                
+                # Find the default
+                default_templates <- grepl("(.*)-default$", templates$name)
+                default_row <- which(default_templates==TRUE)
+                
+                # if there's no default template, set the first one as the default
+                # otherwise find the first default template and set that
+                if(length(default_row)==0) default_row<-1 else default_row <- min(default_row)
+                
+                # remove the -default from the names and add a (*) against the default row 
+                templates$name <- sub("(.*)-default$", "\\1", templates$name)
+                templates$default <- ""
+                templates$default[default_row] <- "(*)"
+        }
         
         # Get list of analysis/report files
         analysis <- NULL
         if (length(other_dir)>0)  analysis <- extract_files(other_dir)
         
-        list(templates=templates, analysis=analysis)
+        #return results as a list
+        list(templates=templates, default_template=default_row, analysis=analysis)
 }
 
 # Function to create reports
@@ -79,33 +98,52 @@ find.names <- function (dir="."){
 #
 #  Calling the function with no arguments shows a list of available templates
 
-create.report <- function (report_name=NULL, template="standard") {
-        rep_dir <- "reports"
-        template_dir <- file.path(rep_dir, "report_templates")
-        template_file <- file.path(template_dir, paste0(template, ".Rmd"))
+from.template <- function (report_name=NULL, template=NULL, rep_dir=NULL) {
         
-        if (!file.exists(template_dir)) stop("No report template directory found.")
-        if (!file.exists(template_file)) stop(paste0("Report template ", template, " not found."))
+        find_names <- find.names(rep_dir)
+        available_templates <- find_names$templates
         
+        if (is.null(available_templates)) stop("No report template directory found.")
+        
+        # if no report_name, print out the available templates
         if (is.null(report_name)) {
-                # Find available reports from the templates directory
-                templates <- report.names(template_dir)
-                message("Available report templates:", templates, "\n")
+                # Show available templates, default template shown with an asterix
+                templates <- paste0(available_templates$name, available_templates$default)
+                
+                cat("Available report templates: ", templates, "\n")
+                cat("* template used by default if no name specified\n")
                 return()
         }
         
+        # if no template, select the default, otherwise find the row number of the
+        # requested template
+        if (is.null(template)) {
+                template_file <- find_names$default_template
+        }
+        else {
+                template_file <- match(template, available_templates$name)
+                if (is.na(template_file)) stop(paste0("Report template ", template, " not found."))
+        }
         
+        template_file <- available_templates$file[template_file] 
+        template_ext <- sub(".*(\\..*)$", "\\1", template_file)
         report_dir <- file.path(rep_dir, report_name)
-        report_file <- file.path(report_dir, paste0(report_name, ".Rmd"))
         
-        if(file.exists(report_file)) stop(paste0("Report ", report_name, " already exists"))
+        ####  This needs some more work to put a better name
+        report_file <- file.path(report_dir, paste0("00",report_name, template_ext))
+        
+        #if(file.exists(report_file)) stop(paste0("Report ", report_name, " already exists"))
         
         dir.create(report_dir)
         file.copy(template_file, report_file)
         cat(paste0("Created new report ", report_name))
 }
 
+# wrapper for creating reports
+create.report <- function(...) from.template(..., rep_dir="reports")
 
+# wrapper for creating reports
+create.analysis <- function(...) from.template(..., rep_dir="src")
 
 # Function to generate reports
 # Input parameters are:
