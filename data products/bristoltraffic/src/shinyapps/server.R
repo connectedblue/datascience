@@ -3,9 +3,7 @@ library(leaflet)
 
 # Set up the data set
 
-library (ProjectTemplate)
-
-load.project()
+hourly_summary <- read.csv2("data/bristol.csv")
 
 
 #server part to serve the maps
@@ -40,7 +38,7 @@ shinyServer(
                                         radius = 10,
                                         color = ~status,
                                         stroke = FALSE, fillOpacity = 0.5,
-                                        popup = ~section_description
+                                        popup = ~popup
                                 )
                 })
                 
