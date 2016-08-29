@@ -1,0 +1,9 @@
+name: bristoltraffic
+account: connectedblue
+server: shinyapps.io
+appId: 122605
+bundleId: 543715
+url: https://connectedblue.shinyapps.io/bristoltraffic/
+when: 1472493019.5937
+asMultiple: FALSE
+asStatic: FALSE

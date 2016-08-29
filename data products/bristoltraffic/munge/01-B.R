@@ -42,6 +42,8 @@ hourly_summary <- journeys %>% group_by(section_id, day, hour) %>%
 hourly_summary <- as.data.frame(hourly_summary)
 
 
+                  
+# Merge in the location and other route specific data
 hourly_summary <- merge(hourly_summary, summary, by="section_id", all.x=TRUE)
 
 # Assign red/orange/green to each observation as follows:
@@ -51,6 +53,8 @@ hourly_summary <- merge(hourly_summary, summary, by="section_id", all.x=TRUE)
 
 hourly_summary$status <- ifelse(hourly_summary$mean_speed.x<(hourly_summary$mean_speed.y - 0.5*hourly_summary$sd_speed.y), "red",
                          ifelse(hourly_summary$mean_speed.x>=hourly_summary$mean_speed.y, "green", "orange"))
+
+hourly_summary$mean
 
 # Make a pop up field to display on map markers
 

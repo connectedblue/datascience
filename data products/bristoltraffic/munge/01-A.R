@@ -42,6 +42,8 @@ clean_traffic_data <- function(journeys, location_fixes) {
         # incorrect (or both even)
         journeys <- journeys[!((journeys$section_id=="SECTIONTL00104" &
                               journeys$distance==1.8) |
+                              (journeys$section_id=="SECTIONTL00079" &
+                               journeys$distance==2.8) | 
                               (journeys$section_id=="SECTIONTL00109" &
                                journeys$distance==1.7)),]             
                                      
