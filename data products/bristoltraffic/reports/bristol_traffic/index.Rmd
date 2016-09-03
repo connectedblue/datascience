@@ -6,12 +6,11 @@ job         :
 framework   : io2012        # {io2012, html5slides, shower, dzslides, ...}
 highlighter : highlight.js  # {highlight.js, prettify, highlight}
 hitheme     : tomorrow      # 
-widgets     : [shiny]            # {mathjax, quiz, bootstrap}
+widgets     : []            # {mathjax, quiz, bootstrap}
 mode        : selfcontained # {standalone, draft}
 knit        : slidify::knit2slides
 ---
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
 
 # Load up project data
 # This file must be compiled from the root directory for the analysis
@@ -21,158 +20,109 @@ library(ProjectTemplate)
 
 load.project()
 
-library(shiny)
-
+library(knitr)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 
 ## Introduction
 
 * Bristol has deployed multiple sensors around the city and made data available in an open data project (https://opendata.bristol.gov.uk/)
-* One dataset collects journey times from `r nrow(summary)` different routes, varying in length from r min(summary$distance_miles) to r max(summary$distance_miles) miles.  This data is collected every ten minutes, 24 hours a day, seven days a week.
+* One dataset collects journey times from `r nrow(summary)` different routes, varying in length from `r min(summary$distance_miles)` to `r max(summary$distance_miles)` miles.  This data is collected every ten minutes, 24 hours a day, seven days a week.
 * We introduce today a brand new application that makes use of the historical journey times data to build up a profile of average traffic conditions in Bristol for every hour in every day.
 *  It's expected that this application will be used by commuters, small businesses and local government planners amongst others.
+* The application can be accessed at https://connectedblue.shinyapps.io/bristoltraffic/
 * The following slides demonstrate how the application works
 
 ---
 
-## test
+## Route data
 
-```{r test, echo = FALSE}
+* Bristol have installed Automatic Number Plate recognition at various points around the city.  From this they are able to track accurate mean journey times across various routes at all times of day and night.
+* This data is published in raw form to the Open Data website.  The following table shows a summary of some example routes:
 
-day <- "Tuesday"
-hour <- 8
-# Filter data based on user input
-filteredData <- hourly_summary %>% filter(day==day, hour==hour)
+```{r routetable, echo=FALSE}
+# format summary into a table
+kable(data.frame(Route=summary$section_description, 
+                 Distance=round(summary$distance_miles,1),
+                 Speed=round(summary$mean_speed,1), 
+                 Journey=round(summary$mean_travel_time/60,0)
+                 )[1:8,],
+      row.names = FALSE, 
+      col.names = c("Route", "Distance",
+                    "Average Speed", "Average journey time"),
+      align = c("l", "c", "c","c"),
+      format.args = list(big.mark=",")
+      )
+```
 
-# show the static map without the circle markers and mean city speed
+---
 
-map <- leaflet(hourly_summary) %>% addTiles() %>%
-                fitBounds(~min(long), ~min(lat), ~max(long), ~max(lat)) 
+## Determining route status: red/amber/green
+
+* Each route is analysed individually by day and hour.  The speed for each timeslot is compared to the overall route average speed.
+* If it's greater than the mean speed, the status is green. If it's less than the mean minus half a standard deviation, the status is red. Otherwise it's orange.
+```{r routecalc, echo=FALSE}
+# Isolate an example route and day
+example<-hourly_summary %>% filter(day=="Monday", section_id=="SECTIONTL00001")
+route<-example$section_description[1]
+day <- example$day[1]
+speed <- round(example$mean_speed.y[1],1)
+sd <- round(example$sd_speed.y[1],1)
+```
+
+* Here's an example for one route: `r route`, on a `r day`:
+
+```{r exampletable, echo=FALSE}
 
 
-city_speed <- function(data){
-        round(sum(data$distance_miles)/
-                      (sum(data$mean_travel_time.x)/3600),
-              0)
-}
-
+# format the hour to be more readable
 time_format <- function (h) {
-        
-        period <- ifelse(h>=6 & h<=10, "Morning",
-                  ifelse(h>=10 & h<17, "Afternoon",
-                  ifelse(h>=17 & h<20, "Evening", "Nighttime")))
         h1<-h%%12
         if (h1==0) h1<-12
         h2<-(h1+1)%%12
         if (h2==0) h2<-12
         time <- paste0(h1," - ", h2, ifelse(h<12, "am", "pm"))
-        list(period=period, time=time)
 }
+example$time <- lapply(example$hour, time_format)
 
-city_speed <- city_speed(filteredData) 
-t_fmt<-time_format(hour)
-period <- t_fmt$period
-time <- t_fmt$time
+title <- paste0(route,": ", day)
 
-title <- paste0("<big>",day, " ", period, "<br/>", time, "</big>"  )
-map <- map %>%
-        clearMarkers() %>%
-        clearControls() %>%
-        addCircleMarkers(
-                ~long, ~lat,
-                radius = 10,
-                color = ~status,
-                stroke = FALSE, fillOpacity = 0.5,
-                popup = ~popup
-        ) %>%
-        addLegend("topright", colors=c(""),
-                  title = "Ave City Speed",
-                  labels=c(paste0("<big><big>", city_speed,"<b></big></big><big>&nbsp;mph</big></b>"))
-        ) %>%
-        addLegend("bottomright", title="Route status",
-                  colors=c("red", "orange", "green"),
-                  labels=c("Congested<br/>", "Slow<BR/>", "Normal"),
-                  opacity=0.5
-        ) %>%
-        addLegend("bottomleft", title=title,colors=c(""),
-                  labels=c("")
-        ) 
+# create a 4 x 6 grid
+grid <- data.frame(
+                Time2=as.character(example$time[5:8]),
+                Speed2=round(example$mean_speed.x[5:8],1),
+                Status2=example$status[5:8],
+                Time3=as.character(example$time[9:12]),
+                Speed3=round(example$mean_speed.x[9:12],1),
+                Status3=example$status[9:12],
+                Time4=as.character(example$time[13:16]),
+                Speed4=round(example$mean_speed.x[13:16],1),
+                Status4=example$status[13:16]
+        )
 
 
-map
+kable(grid,
+      row.names = FALSE, 
+      col.names = c("", "Speed", "Status", 
+                    "", "Speed", "Status",
+                    "", "Speed", "Status"
+                    ),
+      caption = title,
+      format.args = list(big.mark=",")
+      )             
 
 ```
 
+* The average speed for this route overall is `r speed`mph, and the standard deviation is `r sd`.  This means if an individual hour records an average of less than `r speed-0.5*sd`mph, then the status is shown as red.
 
 ---
 
-```{r plot, echo=F}
+## Using the application
 
-day <- "Tuesday"
-hour <- 8
-# Filter data based on user input
-filteredData <- hourly_summary %>% filter(day==day, hour==hour)
+* There are two main ways to view the data:  A map view and a bar chart view.  Both views can be changed dynamically by selecting the desired day from the panel of the left, and also the hour can be changed in the slider to see how traffic changes during the day.
 
+* The map view shows the geographic locations of each route, with red, orange or green circles showing the status at any particular time.  If you click on a circle, you can see more details about the average speed and journey time during that particular hour.
 
-city_speed <- function(data){
-        round(sum(data$distance_miles)/
-                      (sum(data$mean_travel_time.x)/3600),
-              0)
-}
-
-time_format <- function (h) {
-        
-        period <- ifelse(h>=6 & h<=10, "Morning",
-                  ifelse(h>=10 & h<17, "Afternoon",
-                  ifelse(h>=17 & h<20, "Evening", "Nighttime")))
-        h1<-h%%12
-        if (h1==0) h1<-12
-        h2<-(h1+1)%%12
-        if (h2==0) h2<-12
-        time <- paste0(h1," - ", h2, ifelse(h<12, "am", "pm"))
-        list(period=period, time=time)
-}
-
-
-
-data <- filteredData
-city_speed <- city_speed(data)
-t_fmt<-time_format(hour)
-period <- t_fmt$period
-time <- t_fmt$time
-title <- paste0(day, " ", period,": ", time)
-
-data$label <- paste0(data$section_description, "ss:ss", data$mean_speed.x)
-g<-ggplot(data,aes(x=reorder(section_description, -mean_speed.x), 
-                   y=mean_speed.x)) +
-           geom_bar(stat="identity",
-                    fill=data$status) +
-           xlab("Routes") + ylab("Average Speed (mph)") +
-           coord_flip() +
-           theme(axis.text.y=element_blank(),
-                 axis.ticks.y=element_blank(),
-                 panel.grid.minor=element_blank(), 
-                 panel.grid.major=element_blank(),
-                 panel.background = element_rect(fill = "cornsilk"),
-                 panel.border = element_rect(fill="transparent", colour="black")) +
-           geom_hline(yintercept = city_speed, linetype="dashed", colour="black", size=1) +
-           ggtitle(paste0(title, ".  Average city speed: ", city_speed, "mph")               
-    )
-g
-```
-
-
----
-
-
-
---- 
-
-## The input screen
-
-
-```
-
----
+* The bar chart view shows an ordered view, from the slowest to the fastest routes.  This allows you to see at a glance which are the most busiest routes for any particular hour.
 
